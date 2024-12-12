@@ -9,16 +9,24 @@ export const typeDefs = gql`
     last_fed: String!
   }
 
-  type Query {
-    reptiles: [Reptile]
+  input AddReptileInput {
+    name: String!
+    species: String!
+    age: Int!
+    last_fed: String!
   }
 
+  type DeleteReptileResponse {
+    success: Boolean!
+    message: String!
+  }
   type Mutation {
-    addReptile(
-      name: String!
-      species: String!
-      age: Int!
-      last_fed: String!
-    ): Reptile
+    addReptile(input: AddReptileInput!): Reptile
+
+    deleteReptile(id: ID!): DeleteReptileResponse!
+  }
+
+  type Query {
+    reptiles: [Reptile]
   }
 `;

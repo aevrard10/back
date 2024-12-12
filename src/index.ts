@@ -9,7 +9,6 @@ const server = new ApolloServer({
   resolvers,
 });
 
-// Appliquer Apollo Server à l'application Express
 async function startServer() {
   await server.start();
   server.applyMiddleware({ app });

@@ -1,3 +1,4 @@
+import { OkPacket } from "mysql2";
 import connection from "../db";
 
 // Résolveurs GraphQL
@@ -34,8 +35,10 @@ export const resolvers = {
             if (err) {
               reject(new Error("Erreur lors de l'ajout du reptile"));
             }
+            const resultSet = results as OkPacket;
+
             resolve({
-              //   id: results.insertId,
+              id: resultSet,
               name,
               species,
               age,

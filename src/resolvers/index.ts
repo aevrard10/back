@@ -1,7 +1,27 @@
 import { OkPacket, RowDataPacket } from "mysql2";
 import { executeQuery } from "../db/utils/dbUtils";
+import connection from "../db";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+dotenv.config();
 
-// Résolveurs GraphQL
+const SECRET_KEY = process.env.SECRET_KEY;
+// TODO : optimiser le code
+export const authenticate = (context: any) => {
+  const token = context.headers.authorization;
+
+  if (!token) {
+    throw new Error("Accès refusé, aucun token fourni.");
+  }
+
+  try {
+    const decoded = jwt.verify(token, "votre_clé_secrète");
+    return decoded; // Contient les infos utilisateur (id, email, etc.)
+  } catch (error) {
+    throw new Error("Token invalide ou expiré.");
+  }
+};
 export const resolvers = {
   Query: {
     reptiles: async () => {
@@ -23,6 +43,120 @@ export const resolvers = {
     },
   },
   Mutation: {
+    logout: async (_parent: any, _args: any, context: any) => {
+      try {
+        // Exemple avec des cookies
+        if (context.res) {
+          context.res.clearCookie("token", {
+            httpOnly: true,
+            secure: true, // HTTPS uniquement
+            sameSite: "Strict",
+          });
+        }
+
+        // Réponse de confirmation
+        return {
+          success: true,
+          message: "Déconnexion réussie.",
+        };
+      } catch (error) {
+        console.error("Erreur lors de la déconnexion :", error);
+        return {
+          success: false,
+          message: "Erreur lors de la déconnexion.",
+        };
+      }
+    },
+    register: async (
+      _parent: any,
+      args: { input: { username: string; email: string; password: string } }
+    ) => {
+      const { username, email, password } = args.input;
+
+      // Valider les entrées
+      if (!username || !email || !password) {
+        throw new Error("Tous les champs sont requis.");
+      }
+
+      try {
+        // Vérifier si l'utilisateur existe déjà
+        const [existingUser] = (await connection
+          .promise()
+          .query("SELECT id FROM users WHERE email = ?", [email])) as any;
+
+        if (existingUser.length > 0) {
+          throw new Error("Un utilisateur avec cet email existe déjà.");
+        }
+
+        // Hasher le mot de passe
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Insérer l'utilisateur dans la base de données
+        const [result] = (await connection
+          .promise()
+          .query(
+            "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
+            [username, email, hashedPassword]
+          )) as any;
+
+        const userId = result.insertId;
+
+        return {
+          success: true,
+          message: "Utilisateur enregistré avec succès.",
+          user: { id: userId, username, email },
+        };
+      } catch (error) {
+        console.error("Erreur lors de l'enregistrement :", error);
+        throw new Error("Une erreur est survenue lors de l'enregistrement.");
+      }
+    },
+
+    login: async (
+      _parent: any,
+      args: { input: { email: string; password: string } }
+    ) => {
+      const { email, password } = args.input;
+
+      if (!email || !password) {
+        throw new Error("Email et mot de passe sont requis.");
+      }
+
+      try {
+        // Récupérer l'utilisateur depuis la base de données
+        const [user] = (await connection
+          .promise()
+          .query("SELECT * FROM users WHERE email = ?", [email])) as any;
+
+        if (user.length === 0) {
+          throw new Error("Email ou mot de passe incorrect.");
+        }
+
+        const { id, username, password: hashedPassword } = user[0];
+
+        // Vérifier le mot de passe
+        const isPasswordValid = await bcrypt.compare(password, hashedPassword);
+
+        if (!isPasswordValid) {
+          throw new Error("Email ou mot de passe incorrect.");
+        }
+
+        // Générer un token JWT
+        const token = jwt.sign({ id, username, email }, SECRET_KEY, {
+          expiresIn: "1h",
+        });
+
+        return {
+          success: true,
+          message: "Connexion réussie.",
+          token,
+          user: { id, username, email },
+        };
+      } catch (error) {
+        console.error("Erreur lors de la connexion :", error);
+        throw new Error("Une erreur est survenue lors de la connexion.");
+      }
+    },
     deleteReptile: async (_parent: any, args: any) => {
       const { id } = args;
 

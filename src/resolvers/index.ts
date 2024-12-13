@@ -1,25 +1,25 @@
-import { OkPacket } from "mysql2";
-import connection from "../db";
+import { OkPacket, RowDataPacket } from "mysql2";
+import { executeQuery } from "../db/utils/dbUtils";
 
 // Résolveurs GraphQL
 export const resolvers = {
   Query: {
     reptiles: async () => {
-      try {
-        const query = "SELECT * FROM reptiles";
-        const results = await new Promise((resolve, reject) => {
-          connection.execute(query, (err, results) => {
-            if (err) reject(err);
-            resolve(results);
-          });
-        });
-        return results;
-      } catch (error) {
-        console.error(error);
-        throw new Error(
-          "Une erreur est survenue, veuillez réessayer plus tard."
-        );
+      const query = "SELECT * FROM reptiles";
+      return await executeQuery(query, []);
+    },
+    reptile: async (_parent: any, args: { id: string }) => {
+      const { id } = args; // Récupère l'id du reptile à partir des arguments
+      const query = "SELECT * FROM reptiles WHERE id = ?";
+      const results = (await executeQuery(query, [id])) as RowDataPacket[];
+
+      // Si aucun reptile n'est trouvé, renvoyez une erreur
+      if (results.length === 0) {
+        throw new Error("Reptile non trouvé");
       }
+
+      // Retourner le reptile trouvé
+      return results[0]; // On retourne le premier reptile trouvé (car l'id est unique)
     },
   },
   Mutation: {
@@ -33,8 +33,7 @@ export const resolvers = {
       const query = "DELETE FROM reptiles WHERE id = ?";
 
       try {
-        const [results] = await connection.promise().execute(query, [id]);
-        const resultSet = results as any;
+        const resultSet = (await executeQuery(query, [id])) as any;
 
         if (resultSet.affectedRows === 0) {
           throw new Error(`Aucun reptile trouvé avec l'ID : ${id}`);
@@ -57,30 +56,23 @@ export const resolvers = {
       }
       const query =
         "INSERT INTO reptiles (name, species, age, last_fed) VALUES (?, ?, ?, ?)";
-      return new Promise((resolve, reject) => {
-        connection.execute(
-          query,
-          [name, species, age, last_fed],
-          (err, results) => {
-            if (err) {
-              reject(new Error("Erreur lors de l'ajout du reptile"));
-            }
-            const resultSet = results as OkPacket;
-            if (!resultSet?.insertId) {
-              return reject(
-                new Error("Impossible de récupérer l'ID généré par MySQL.")
-              );
-            }
-            resolve({
-              id: resultSet?.insertId, // ID généré automatiquement par MySQL
-              name,
-              species,
-              age,
-              last_fed,
-            });
-          }
-        );
-      });
+      const resultSet = (await executeQuery(query, [
+        name,
+        species,
+        age,
+        last_fed,
+      ])) as OkPacket;
+
+      if (!resultSet.insertId) {
+        throw new Error("Impossible de récupérer l'ID généré par MySQL.");
+      }
+      return {
+        id: resultSet.insertId,
+        name,
+        species,
+        age,
+        last_fed,
+      };
     },
   },
 };

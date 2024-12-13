@@ -1,16 +1,16 @@
 {
   "compilerOptions": {
-    "target": "ES6",                         
-    "module": "commonjs",                    
-    "rootDir": "./src",                      
-    "outDir": "./dist",               
-    "esModuleInterop": true,  // Ajoute cette ligne       
+    "target": "ES6",
+    "module": "commonjs",
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "esModuleInterop": true, // Ajoute cette ligne
     "strict": false, // Désactive les vérifications strictes
     "noImplicitAny": true, // Empêche TypeScript de permettre un "any" implicite
     "noUnusedLocals": false, // Autorise les variables non utilisées
-    "noUnusedParameters": false // Autorise les paramètres non utilisés
+    "noUnusedParameters": false, // Autorise les paramètres non utilisés
+    "noEmitOnError": false, // Cela permet à TypeScript de compiler même s'il y a des erreurs de type
+    "checkJs": false
   },
-  "include": [
-    "src/**/*.ts"
-  ]
+  "include": ["src/**/*.ts"]
 }

@@ -7,6 +7,7 @@ export const typeDefs = gql`
     species: String!
     age: Int!
     last_fed: String!
+    notes: String
   }
 
   input AddReptileInput {
@@ -20,9 +21,13 @@ export const typeDefs = gql`
     success: Boolean!
     message: String!
   }
+  type AddNotesResponse {
+    success: Boolean!
+    message: String!
+  }
   type Mutation {
     addReptile(input: AddReptileInput!): Reptile
-
+    addNotes(id: ID!, notes: String!): AddNotesResponse!
     deleteReptile(id: ID!): DeleteReptileResponse!
   }
 

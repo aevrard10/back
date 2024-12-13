@@ -48,6 +48,31 @@ export const resolvers = {
         throw new Error("Erreur lors de la suppression du reptile.");
       }
     },
+    addNotes: async (_parent: any, args: any) => {
+      const { id, notes } = args;
+
+      if (!id || !notes) {
+        throw new Error("L'ID du reptile et les notes sont requis.");
+      }
+
+      const query = "UPDATE reptiles SET notes = ? WHERE id = ?";
+
+      try {
+        const resultSet = (await executeQuery(query, [notes, id])) as any;
+
+        if (resultSet.affectedRows === 0) {
+          throw new Error(`Aucun reptile trouvé avec l'ID : ${id}`);
+        }
+
+        return {
+          success: true,
+          message: `Les notes ont été ajoutées avec succès au reptile avec l'ID ${id}.`,
+        };
+      } catch (error) {
+        console.error("Erreur lors de l'ajout des notes :", error);
+        throw new Error("Erreur lors de l'ajout des notes au reptile.");
+      }
+    },
     addReptile: async (_parent: any, args: any) => {
       const { name, species, age, last_fed } = args.input;
       console.log(name, species, age, last_fed);

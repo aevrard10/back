@@ -66,5 +66,6 @@ export const typeDefs = gql`
   type Query {
     reptile(id: ID!): Reptile
     reptiles: [Reptile]
+    currentUser: User
   }
 `;

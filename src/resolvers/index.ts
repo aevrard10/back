@@ -4,29 +4,65 @@ import connection from "../db";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import { NextFunction } from "express";
 dotenv.config();
 
 const SECRET_KEY = process.env.SECRET_KEY;
 // TODO : optimiser le code
-export const authenticate = (context: any) => {
-  const token = context.headers.authorization;
-
-  if (!token) {
-    throw new Error("Accès refusé, aucun token fourni.");
+export const authenticateUser = (req: any, res: any, next: NextFunction) => {
+  const authHeader = req.headers.token || req.headers.authorization;
+  if (!authHeader) {
+    req.user = null;
+    return next(); // Laisser les requêtes publiques passer
   }
 
+  const token = authHeader; // Récupère le jeton après "Bearer"
+
+  if (!token) {
+    console.error("Jeton manquant dans l'en-tête Authorization");
+    req.user = null;
+    return next();
+  }
   try {
-    const decoded = jwt.verify(token, "votre_clé_secrète");
-    return decoded; // Contient les infos utilisateur (id, email, etc.)
-  } catch (error) {
-    throw new Error("Token invalide ou expiré.");
+    const decoded = jwt.verify(token, process.env.SECRET_KEY!);
+    req.user = decoded; // Ajouter les données utilisateur au contexte de la requête
+    next();
+  } catch (err) {
+    console.error("Erreur de validation du token :", err);
+    res.status(401).json({ message: "Token invalide ou expiré" });
   }
 };
 export const resolvers = {
   Query: {
-    reptiles: async () => {
-      const query = "SELECT * FROM reptiles";
-      return await executeQuery(query, []);
+    currentUser: (_parent: any, _args: any, context: any) => {
+      // Vérifiez si un utilisateur est authentifié
+      if (!context.user) {
+        throw new Error("Non autorisé");
+      }
+
+      // Retournez les informations de l'utilisateur
+      return {
+        id: context.user.id,
+        email: context.user.email,
+        username: context.user.username,
+      };
+    },
+    reptiles: async (_parent: any, _args: any, context: any) => {
+      const userId = context.user?.id; // Récupère l'ID de l'utilisateur
+
+      if (!userId) {
+        throw new Error("Non autorisé");
+      }
+
+      const query = "SELECT * FROM reptiles WHERE user_id = ?";
+      const results = await new Promise((resolve, reject) => {
+        connection.execute(query, [userId], (err, results) => {
+          if (err) reject(err);
+          resolve(results);
+        });
+      });
+
+      return results;
     },
     reptile: async (_parent: any, args: { id: string }) => {
       const { id } = args; // Récupère l'id du reptile à partir des arguments
@@ -207,30 +243,41 @@ export const resolvers = {
         throw new Error("Erreur lors de l'ajout des notes au reptile.");
       }
     },
-    addReptile: async (_parent: any, args: any) => {
+    addReptile: async (_parent: any, args: any, context: any) => {
+      const userId = context.user?.id;
+
+      if (!userId) {
+        throw new Error("Non autorisé");
+      }
+
       const { name, species, age, last_fed } = args.input;
-      console.log(name, species, age, last_fed);
-      if (!name || !species || age === undefined || !last_fed) {
-        throw new Error("Tous les champs sont obligatoires.");
+
+      if (!name || !species || !age || !last_fed) {
+        throw new Error("Tous les champs sont requis.");
       }
       const query =
-        "INSERT INTO reptiles (name, species, age, last_fed) VALUES (?, ?, ?, ?)";
+        "INSERT INTO reptiles (name, species, age, last_fed, user_id) VALUES (?, ?, ?, ?, ?)";
       const resultSet = (await executeQuery(query, [
         name,
         species,
         age,
         last_fed,
+        userId,
       ])) as OkPacket;
 
       if (!resultSet.insertId) {
-        throw new Error("Impossible de récupérer l'ID généré par MySQL.");
+        throw new Error(
+          "Impossible de récupérer l'ID généré par la base de données"
+        );
       }
+
       return {
         id: resultSet.insertId,
         name,
         species,
         age,
         last_fed,
+        user_id: userId,
       };
     },
   },

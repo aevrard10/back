@@ -32,6 +32,7 @@ export const typeDefs = gql`
     age: Int!
     last_fed: String!
     notes: String
+    image_url: String
   }
 
   input AddReptileInput {

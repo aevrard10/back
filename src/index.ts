@@ -2,7 +2,6 @@ import express, { Application } from "express";
 import { ApolloServer } from "apollo-server-express";
 import { typeDefs } from "./shemas";
 import { authenticateUser, resolvers } from "./resolvers";
-import cors from "cors";
 import bodyParser from "body-parser";
 
 const app: Application = express();

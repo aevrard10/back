@@ -179,7 +179,7 @@ export const resolvers = {
 
         // Générer un token JWT
         const token = jwt.sign({ id, username, email }, SECRET_KEY, {
-          expiresIn: "1h",
+          expiresIn: "30d",
         });
 
         return {

@@ -8,8 +8,6 @@ const app: Application = express();
 // Configuration des middlewares globaux
 
 app.use(authenticateUser);
-// app.use(cors()); // Autoriser les requêtes cross-origin
-
 app.use(bodyParser.json()); // Parser les requêtes JSON
 
 // Configurer Apollo Server
@@ -17,11 +15,7 @@ app.use(bodyParser.json()); // Parser les requêtes JSON
 const server = new ApolloServer({
   typeDefs,
   resolvers,
-  context: ({
-    req,
-  }: {
-    req: { user?: any }; // Remplacez `any` par un type précis si possible
-  }) => {
+  context: ({ req }: { req: { user?: any } }) => {
     console.log("Utilisateur authentifié :", req.user);
     return { user: req.user || null };
   },

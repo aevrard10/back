@@ -1,6 +1,6 @@
 import { gql } from "apollo-server-express";
-
 export const typeDefs = gql`
+  scalar Upload
   type User {
     id: ID!
     username: String!
@@ -62,11 +62,20 @@ export const typeDefs = gql`
     register(input: RegisterInput!): AuthPayload!
     login(input: LoginInput!): AuthPayload!
     logout: LogoutResponse!
+    addReptileImage(id: ID!, image: Upload!): Reptile
+    deleteReptileImage(id: ID!): Reptile
+  }
+  type ReptileEvent {
+    id: ID!
+    event_date: String!
+    event_name: String!
+    event_time: String!
   }
 
   type Query {
     reptile(id: ID!): Reptile
     reptiles: [Reptile]
+    reptileEvent: [ReptileEvent]
     currentUser: User
   }
 `;

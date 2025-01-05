@@ -1,11 +1,14 @@
 import mysql from "mysql2";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 // Créer une connexion à la base de données
 const connection = mysql.createConnection({
-  host: "localhost", // Utilise 'localhost' ou '127.0.0.1'
-  user: "root", // Ton utilisateur MySQL
+  host: process.env.DB_HOST, // Utilise 'localhost' ou '127.0.0.1'
+  user: process.env.DB_USER, // Ton utilisateur MySQL
   password: "", // Ton mot de passe MySQL
-  database: "reptiles_db", // Le nom de ta base de données
+  database: process.env.DB_NAME, // Le nom de ta base de données
   port: 3000,
 });
 

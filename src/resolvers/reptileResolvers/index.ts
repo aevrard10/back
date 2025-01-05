@@ -44,6 +44,36 @@ export const reptileResolvers = {
     },
   },
   Mutation: {
+    addReptileEvent: async (_parent: any, args: any, context: any) => {
+      const userId = context.user?.id;
+
+      if (!userId) {
+        throw new Error("Non autorisé");
+      }
+
+      const { event_name, event_date, event_time, notes } = args.input;
+
+      const query =
+        "INSERT INTO reptile_events (event_name, event_date, event_time, notes, user_id) VALUES (?, ?, ?, ?, ?)";
+      const [result] = (await connection
+        .promise()
+        .query(query, [
+          event_name,
+          event_date,
+          event_time,
+          notes,
+          userId,
+        ])) as OkPacket[];
+
+      return {
+        id: result.insertId,
+        event_name,
+        event_date,
+        event_time,
+        notes,
+        user_id: userId,
+      };
+    },
     addReptile: async (_parent: any, args: any, context: any) => {
       const userId = context.user?.id;
 

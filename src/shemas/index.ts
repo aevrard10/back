@@ -41,6 +41,12 @@ export const typeDefs = gql`
     age: Int!
     last_fed: String!
   }
+  input AddReptileEventInput {
+    event_name: String!
+    event_date: String!
+    event_time: String!
+    notes: String
+  }
 
   type DeleteReptileResponse {
     success: Boolean!
@@ -55,8 +61,18 @@ export const typeDefs = gql`
     success: Boolean!
     message: String!
   }
+
+  type ReptileEvent {
+    id: ID!
+    event_date: String!
+    event_name: String!
+    event_time: String!
+    notes: String
+  }
+
   type Mutation {
     addReptile(input: AddReptileInput!): Reptile
+    addReptileEvent(input: AddReptileEventInput!): ReptileEvent
     addNotes(id: ID!, notes: String!): AddNotesResponse!
     deleteReptile(id: ID!): DeleteReptileResponse!
     register(input: RegisterInput!): AuthPayload!
@@ -64,12 +80,6 @@ export const typeDefs = gql`
     logout: LogoutResponse!
     addReptileImage(id: ID!, image: Upload!): Reptile
     deleteReptileImage(id: ID!): Reptile
-  }
-  type ReptileEvent {
-    id: ID!
-    event_date: String!
-    event_name: String!
-    event_time: String!
   }
 
   type Query {

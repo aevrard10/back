@@ -81,31 +81,85 @@ export const reptileResolvers = {
         throw new Error("Non autorisé");
       }
 
-      const { name, species, age, last_fed, sort_of_species } = args.input;
+      // Récupérer tous les champs de l'input
+      const {
+        name,
+        species,
+        sort_of_species,
+        sex,
+        age,
+        last_fed,
+        feeding_schedule,
+        diet,
+        humidity_level,
+        temperature_range,
+        lighting_requirements,
+        health_status,
+        acquired_date,
+        origin,
+        location,
+        notes,
+        next_vet_visit,
+      } = args.input;
 
-      const query =
-        "INSERT INTO reptiles (name, species, age, last_fed, user_id) VALUES (?, ?, ?, ?, ?)";
+      // Générer la requête SQL avec tous les champs
+      const query = `
+        INSERT INTO reptiles (
+          name, species, sort_of_species, sex, age, last_fed, feeding_schedule, 
+          diet, humidity_level, temperature_range, lighting_requirements, 
+          health_status, acquired_date, origin, location, notes, next_vet_visit, user_id
+        ) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+
+      // Exécuter la requête SQL avec les valeurs correspondantes
       const [result] = (await connection
         .promise()
         .query(query, [
           name,
           species,
+          sort_of_species,
+          sex,
           age,
           last_fed,
-          sort_of_species,
+          feeding_schedule,
+          diet,
+          humidity_level,
+          temperature_range,
+          lighting_requirements,
+          health_status,
+          acquired_date,
+          origin,
+          location,
+          notes,
+          next_vet_visit,
           userId,
         ])) as OkPacket[];
 
+      // Retourner l'objet avec toutes les informations insérées
       return {
         id: result.insertId,
         name,
         species,
+        sort_of_species,
+        sex,
         age,
         last_fed,
-        sort_of_species,
+        feeding_schedule,
+        diet,
+        humidity_level,
+        temperature_range,
+        lighting_requirements,
+        health_status,
+        acquired_date,
+        origin,
+        location,
+        notes,
+        next_vet_visit,
         user_id: userId,
       };
     },
+
     deleteReptile: async (_parent: any, args: { id: string }) => {
       const query = "DELETE FROM reptiles WHERE id = ?";
 

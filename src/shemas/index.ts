@@ -24,23 +24,70 @@ export const typeDefs = gql`
     email: String!
     password: String!
   }
+  type MedicalRecord {
+    date: String!
+    diagnosis: String
+    treatment: String
+    vet_name: String
+    notes: String
+  }
 
+  type Enclosure {
+    id: ID!
+    type: String!
+    dimensions: String!
+    temperature: String
+    humidity: Int
+    lighting: String
+    notes: String
+  }
   type Reptile {
     id: ID!
     name: String!
     species: String!
+    sort_of_species: String
+    sex: String
     age: Int!
     last_fed: String!
+    feeding_schedule: String
+    diet: String
+    humidity_level: Int
+    temperature_range: String
+    lighting_requirements: String
+    health_status: String
+    last_vet_visit: String
+    next_vet_visit: String
+    medical_history: [MedicalRecord]
+    behavior_notes: String
+    handling_notes: String
+    acquired_date: String
+    origin: String
+    location: String
+    enclosure: Enclosure
+    gallery: [String]
+    documents: [String]
     notes: String
     image_url: String
-    sort_of_species: String
   }
 
   input AddReptileInput {
     name: String!
     species: String!
+    sort_of_species: String
+    sex: String
     age: Int!
-    last_fed: String!
+    last_fed: String
+    feeding_schedule: String
+    diet: String
+    humidity_level: Int
+    temperature_range: String
+    lighting_requirements: String
+    health_status: String
+    acquired_date: String
+    origin: String
+    location: String
+    notes: String
+    next_vet_visit: String!
   }
   input AddReptileEventInput {
     event_name: String!

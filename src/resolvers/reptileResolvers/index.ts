@@ -38,9 +38,32 @@ export const reptileResolvers = {
       if (results.length === 0) {
         throw new Error("Reptile non trouvé");
       }
+      const reptile = results[0];
+      const formattedAcquiredDate = new Intl.DateTimeFormat("fr-FR", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }).format(new Date(reptile.acquired_date));
 
+      const formattedLastFed = new Intl.DateTimeFormat("fr-FR").format(
+        new Date(reptile.last_fed)
+      );
+      const formattedNextVetVisit = new Intl.DateTimeFormat("fr-FR").format(
+        new Date(reptile.next_vet_visit)
+      );
+
+      const formattedLastVetVisit = new Intl.DateTimeFormat("fr-FR").format(
+        new Date(reptile.last_vet_visit)
+      );
       // Retourner le reptile trouvé
-      return results[0]; // On retourne le premier reptile trouvé (car l'id est unique)
+      return {
+        ...reptile,
+        acquired_date: formattedAcquiredDate,
+        last_fed: formattedLastFed,
+        next_vet_visit: formattedNextVetVisit,
+        last_vet_visit: formattedLastVetVisit,
+      };
     },
   },
   Mutation: {

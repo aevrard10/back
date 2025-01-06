@@ -7,11 +7,12 @@ import path from "path";
 
 const app: Application = express();
 // Configuration des middlewares globaux
+import cors from "cors";
 
 app.use(authenticateUser);
 app.use(bodyParser.json()); // Parser les requêtes JSON
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
+app.use(cors()); // Autoriser les requêtes cross-origin
 // Configurer Apollo Server
 
 const server = new ApolloServer({

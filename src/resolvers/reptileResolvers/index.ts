@@ -81,13 +81,20 @@ export const reptileResolvers = {
         throw new Error("Non autorisé");
       }
 
-      const { name, species, age, last_fed } = args.input;
+      const { name, species, age, last_fed, sort_of_species } = args.input;
 
       const query =
         "INSERT INTO reptiles (name, species, age, last_fed, user_id) VALUES (?, ?, ?, ?, ?)";
       const [result] = (await connection
         .promise()
-        .query(query, [name, species, age, last_fed, userId])) as OkPacket[];
+        .query(query, [
+          name,
+          species,
+          age,
+          last_fed,
+          sort_of_species,
+          userId,
+        ])) as OkPacket[];
 
       return {
         id: result.insertId,
@@ -95,6 +102,7 @@ export const reptileResolvers = {
         species,
         age,
         last_fed,
+        sort_of_species,
         user_id: userId,
       };
     },

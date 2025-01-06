@@ -33,6 +33,7 @@ export const typeDefs = gql`
     last_fed: String!
     notes: String
     image_url: String
+    sort_of_species: String
   }
 
   input AddReptileInput {

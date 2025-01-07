@@ -70,6 +70,20 @@ export const typeDefs = gql`
     image_url: String
   }
 
+  input AddMeasurementInput {
+    reptile_id: ID!
+    date: String!
+    weight: Float!
+    size: Float!
+  }
+
+  type Measurement {
+    id: ID!
+    reptile_id: ID!
+    date: String!
+    weight: Float!
+    size: Float!
+  }
   input AddReptileInput {
     name: String!
     species: String!
@@ -128,9 +142,12 @@ export const typeDefs = gql`
     logout: LogoutResponse!
     addReptileImage(id: ID!, image: Upload!): Reptile
     deleteReptileImage(id: ID!): Reptile
+    addMeasurement(input: AddMeasurementInput!): Measurement
   }
 
   type Query {
+    measurements(reptile_id: ID!): [Measurement!]!
+
     reptile(id: ID!): Reptile
     reptiles: [Reptile]
     reptileEvent: [ReptileEvent]

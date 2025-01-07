@@ -16,7 +16,7 @@ const hasIterator = typeof Symbol !== 'undefined' && Symbol.asyncIterator;
     function onError(err) {
         error = err;
         const all = waiting.slice();
-        all.forEach(function(pair) {
+        all.forEach((pair)=>{
             pair[1](err);
         });
         !cleanup || cleanup();
@@ -24,7 +24,7 @@ const hasIterator = typeof Symbol !== 'undefined' && Symbol.asyncIterator;
     function onEnd() {
         done = true;
         const all = waiting.slice();
-        all.forEach(function(pair) {
+        all.forEach((pair)=>{
             pair[0]({
                 value: undefined,
                 done: true
@@ -32,7 +32,7 @@ const hasIterator = typeof Symbol !== 'undefined' && Symbol.asyncIterator;
         });
         !cleanup || cleanup();
     }
-    cleanup = function() {
+    cleanup = ()=>{
         cleanup = null;
         stream.removeListener('data', onData);
         stream.removeListener('error', onError);
@@ -46,7 +46,7 @@ const hasIterator = typeof Symbol !== 'undefined' && Symbol.asyncIterator;
     stream.on('finish', onEnd);
     stream.on('close', onEnd);
     function getNext() {
-        return new Promise(function(resolve, reject) {
+        return new Promise((resolve, reject)=>{
             if (error) return reject(error);
             if (data.length) return resolve({
                 value: data.shift(),
@@ -73,4 +73,4 @@ const hasIterator = typeof Symbol !== 'undefined' && Symbol.asyncIterator;
         };
     }
     return iterator;
-}; /* c8 ignore stop */ 
+} /* c8 ignore stop */ 

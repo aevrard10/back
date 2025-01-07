@@ -1,10 +1,6 @@
-// @ts-ignore
 import asyncIterator from './iterators/async.mjs';
-// @ts-ignore
 import nodeStreamIterator from './iterators/nodeStream.mjs';
-// @ts-ignore
 import promiseIterator from './iterators/promise.mjs';
-// @ts-ignore
 import readerIterator from './iterators/reader.mjs';
 const hasIterator = typeof Symbol !== 'undefined' && Symbol.asyncIterator;
 /**
@@ -23,4 +19,4 @@ const hasIterator = typeof Symbol !== 'undefined' && Symbol.asyncIterator;
     if (body.arrayBuffer) return promiseIterator(body.arrayBuffer());
     if (body.pipe) return nodeStreamIterator(body);
     /* c8 ignore stop */ throw new Error('Unknown body type for responseIterator. Maybe you are not passing a streamable response');
-};
+}

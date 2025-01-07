@@ -8,4 +8,4 @@ export default function asyncIterator(source) {
             return this;
         }
     };
-};
+}

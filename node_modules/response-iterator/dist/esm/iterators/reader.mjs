@@ -11,4 +11,4 @@ const hasIterator = typeof Symbol !== 'undefined' && Symbol.asyncIterator;
         };
     }
     return iterator;
-}; /* c8 ignore stop */ 
+} /* c8 ignore stop */ 

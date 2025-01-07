@@ -27,6 +27,7 @@ const server = new ApolloServer({
 });
 // Planifier l'exécution de la vérification tous les jours à 8h00 du matin
 cron.schedule("0 8 * * *", async () => {
+  // * * * * * pour tester toutes les minutes
   console.log("Vérification des événements du jour...");
 
   // Récupérer tous les utilisateurs avec leurs tokens Expo

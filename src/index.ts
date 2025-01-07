@@ -25,7 +25,7 @@ const server = new ApolloServer({
     return { user: req.user || null };
   },
 });
-// Planifier l'exécution de la vérification tous les jours à 8h00 du matin
+// Planifier l'exécution de la vérification tous les jours à 8h00 du matin: 0 8 * * *
 cron.schedule("0 8 * * *", async () => {
   // * * * * * pour tester toutes les minutes
   console.log("Vérification des événements du jour...");
@@ -53,9 +53,26 @@ cron.schedule("0 8 * * *", async () => {
         body: `Vous avez ${events.length} événement(s) aujourd'hui !`,
         data: { events }, // Ajoutez des données supplémentaires si nécessaire
       };
+      const notificationMessage = `Vous avez ${events.length} événement(s) aujourd'hui !`;
+
+      const notificationQuery = `
+        INSERT INTO notifications (user_id, message, sent, \`read\`) 
+        VALUES (?, ?, ?, ?)
+      `;
+      await connection
+        .promise()
+        .query(notificationQuery, [user.id, notificationMessage, false, false])
+        .catch((error) => {
+          console.error(
+            "Erreur lors de l'insertion de la notification :",
+            error
+          );
+        });
 
       // Appeler la fonction sendDailyNotifications pour envoyer la notification
-      sendDailyNotifications(user.expo_token, message);
+      sendDailyNotifications(user.expo_token, message)?.catch((error) => {
+        console.error("Erreur lors de l'envoi de la notification :", error);
+      });
     }
   }
 });

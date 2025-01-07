@@ -20,7 +20,15 @@ export const typeDefs = gql`
     email: String!
     password: String!
   }
-
+  type Notification {
+    id: Int!
+    user_id: Int!
+    message: String!
+    sent: Boolean!
+    read: Boolean
+    created_at: String!
+    sent_at: String
+  }
   input LoginInput {
     email: String!
     password: String!
@@ -145,11 +153,14 @@ export const typeDefs = gql`
     addReptileImage(id: ID!, image: Upload!): Reptile
     deleteReptileImage(id: ID!): Reptile
     addMeasurement(input: AddMeasurementInput!): Measurement
+    markNotificationAsRead(id: Int!): Notification!
+    markAllNotificationsAsRead(user_id: Int!): [Notification!]!
   }
 
   type Query {
     measurements(reptile_id: ID!): [Measurement!]!
-
+    getNotifications: [Notification!]!
+    getUnreadNotificationsCount(user_id: Int!): Int!
     reptile(id: ID!): Reptile
     reptiles: [Reptile]
     reptileEvent: [ReptileEvent]

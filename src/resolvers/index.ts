@@ -3,16 +3,19 @@ import dotenv from "dotenv";
 import { NextFunction } from "express";
 import { reptileResolvers } from "./reptileResolvers";
 import { authResolvers } from "./authResolvers";
+import { notificationsResolvers } from "./notificationsResolvers";
 dotenv.config();
 
 export const resolvers = {
   Query: {
     ...reptileResolvers.Query,
     ...authResolvers.Query,
+    ...notificationsResolvers.Query,
   },
   Mutation: {
     ...authResolvers.Mutation,
     ...reptileResolvers.Mutation,
+    ...notificationsResolvers.Mutation,
   },
 };
 

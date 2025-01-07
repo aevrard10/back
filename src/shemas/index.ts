@@ -5,6 +5,7 @@ export const typeDefs = gql`
     id: ID!
     username: String!
     email: String!
+    expo_token: String
   }
 
   type AuthPayload {
@@ -23,6 +24,7 @@ export const typeDefs = gql`
   input LoginInput {
     email: String!
     password: String!
+    expo_token: String
   }
   type MedicalRecord {
     date: String!

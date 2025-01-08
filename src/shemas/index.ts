@@ -150,8 +150,6 @@ export const typeDefs = gql`
     register(input: RegisterInput!): AuthPayload!
     login(input: LoginInput!): AuthPayload!
     logout: LogoutResponse!
-    addReptileImage(id: ID!, image: Upload!): Reptile
-    deleteReptileImage(id: ID!): Reptile
     addMeasurement(input: AddMeasurementInput!): Measurement
     markNotificationAsRead(id: Int!): Notification!
     markAllNotificationsAsRead(user_id: Int!): [Notification!]!

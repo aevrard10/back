@@ -68,9 +68,9 @@ export const authResolvers = {
     },
     login: async (
       _parent: any,
-      args: { input: { email: string; password: string } }
+      args: { input: { email: string; password: string; expo_token: string } }
     ) => {
-      const { email, password } = args.input;
+      const { email, password, expo_token } = args.input;
 
       if (!email || !password) {
         throw new Error("Email et mot de passe sont requis.");
@@ -95,7 +95,14 @@ export const authResolvers = {
         if (!isPasswordValid) {
           throw new Error("Email ou mot de passe incorrect.");
         }
-
+        if (expo_token) {
+          await connection
+            .promise()
+            .query("UPDATE users SET expo_token = ? WHERE id = ?", [
+              expo_token,
+              user[0].id,
+            ]);
+        }
         const token = jwt.sign(
           { id: user[0].id, username: user[0].username, email: user[0].email },
           SECRET_KEY,

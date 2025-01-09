@@ -34,23 +34,7 @@ export const typeDefs = gql`
     password: String!
     expo_token: String
   }
-  type MedicalRecord {
-    date: String!
-    diagnosis: String
-    treatment: String
-    vet_name: String
-    notes: String
-  }
 
-  type Enclosure {
-    id: ID!
-    type: String!
-    dimensions: String!
-    temperature: String
-    humidity: Int
-    lighting: String
-    notes: String
-  }
   type Reptile {
     id: ID!
     name: String!
@@ -63,17 +47,12 @@ export const typeDefs = gql`
     diet: String
     humidity_level: Int
     temperature_range: String
-    lighting_requirements: String
     health_status: String
     last_vet_visit: String
     next_vet_visit: String
-    medical_history: [MedicalRecord]
-    behavior_notes: String
-    handling_notes: String
     acquired_date: String
     origin: String
     location: String
-    enclosure: Enclosure
     gallery: [String]
     documents: [String]
     notes: String
@@ -85,6 +64,8 @@ export const typeDefs = gql`
     date: String!
     weight: Float!
     size: Float!
+    size_mesure: String!
+    weight_mesure: String!
   }
 
   type Measurement {
@@ -93,6 +74,8 @@ export const typeDefs = gql`
     date: String!
     weight: Float!
     size: Float!
+    size_mesure: String!
+    weight_mesure: String!
   }
   input AddReptileInput {
     name: String!
@@ -105,7 +88,6 @@ export const typeDefs = gql`
     diet: String
     humidity_level: Int
     temperature_range: String
-    lighting_requirements: String
     health_status: String
     acquired_date: String
     origin: String

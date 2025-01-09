@@ -1,59 +1,9 @@
 import { OkPacket, RowDataPacket } from "mysql2";
 import connection from "../../db";
 import { executeQuery } from "../../db/utils/dbUtils";
-import db from "../../db";
-import path from "path";
-import fs from "fs";
+
 export const reptileResolvers = {
   Query: {
-    measurements: async (
-      _parent: any,
-      args: { reptile_id: string },
-      context: any
-    ) => {
-      const userId = context.user?.id;
-
-      if (!userId) {
-        throw new Error("Non autorisé");
-      }
-
-      const { reptile_id } = args;
-
-      // Vérifier si le reptile appartient à l'utilisateur
-      const checkReptileQuery =
-        "SELECT * FROM reptiles WHERE id = ? AND user_id = ?";
-      const reptile = (await connection
-        .promise()
-        .query(checkReptileQuery, [reptile_id, userId])) as any;
-
-      if (reptile[0].length === 0) {
-        throw new Error("Reptile non trouvé ou non autorisé");
-      }
-
-      // Récupérer les mesures
-      const query = `
-        SELECT id, reptile_id, date, weight, size
-        FROM measurements
-        WHERE reptile_id = ?
-        ORDER BY date ASC
-      `;
-      const [results] = (await connection
-        .promise()
-        .query(query, [reptile_id])) as any;
-
-      const formattedResults = results.map((measurement: any) => ({
-        ...measurement,
-        date:
-          measurement.date && !isNaN(new Date(measurement.date).getTime())
-            ? new Intl.DateTimeFormat("fr-FR").format(
-                new Date(measurement.date)
-              )
-            : null,
-      }));
-      console.log(formattedResults);
-      return formattedResults;
-    },
-
     reptileEvent: async (_parent: any, _args: any, context: any) => {
       const userId = context.user?.id;
 
@@ -165,7 +115,6 @@ export const reptileResolvers = {
         diet,
         humidity_level,
         temperature_range,
-        lighting_requirements,
         health_status,
         acquired_date,
         origin,
@@ -178,10 +127,10 @@ export const reptileResolvers = {
       const query = `
         INSERT INTO reptiles (
           name, species, sort_of_species, sex, age, last_fed, feeding_schedule, 
-          diet, humidity_level, temperature_range, lighting_requirements, 
+          diet, humidity_level, temperature_range, 
           health_status, acquired_date, origin, location, notes, next_vet_visit, user_id
         ) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       // Exécuter la requête SQL avec les valeurs correspondantes
@@ -198,7 +147,6 @@ export const reptileResolvers = {
           diet,
           humidity_level,
           temperature_range,
-          lighting_requirements,
           health_status,
           acquired_date,
           origin,
@@ -221,7 +169,6 @@ export const reptileResolvers = {
         diet,
         humidity_level,
         temperature_range,
-        lighting_requirements,
         health_status,
         acquired_date,
         origin,
@@ -267,47 +214,6 @@ export const reptileResolvers = {
         console.error("Erreur lors de l'ajout des notes :", error);
         throw new Error("Erreur lors de l'ajout des notes au reptile.");
       }
-    },
-    addMeasurement: async (
-      _parent: any,
-      args: { input: any },
-      context: any
-    ) => {
-      const userId = context.user?.id;
-
-      if (!userId) {
-        throw new Error("Non autorisé");
-      }
-
-      const { reptile_id, date, weight, size } = args.input;
-
-      // Vérifier si le reptile appartient à l'utilisateur
-      const checkReptileQuery =
-        "SELECT * FROM reptiles WHERE id = ? AND user_id = ?";
-      const reptile = (await connection
-        .promise()
-        .query(checkReptileQuery, [reptile_id, userId])) as any;
-
-      if (reptile[0].length === 0) {
-        throw new Error("Reptile non trouvé ou non autorisé");
-      }
-
-      // Insérer la mesure dans la table measurements
-      const query = `
-        INSERT INTO measurements (reptile_id, date, weight, size)
-        VALUES (?, ?, ?, ?)
-      `;
-      const [result] = (await connection
-        .promise()
-        .query(query, [reptile_id, date, weight, size])) as OkPacket[];
-
-      return {
-        id: result.insertId,
-        reptile_id,
-        date,
-        weight,
-        size,
-      };
     },
   },
 };

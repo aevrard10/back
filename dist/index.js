@@ -24,49 +24,41 @@ const cors_1 = __importDefault(require("cors"));
 const notificationService_1 = require("./notifications/notificationService");
 const db_1 = __importDefault(require("./db"));
 const multer_1 = __importDefault(require("multer"));
-const db_2 = __importDefault(require("./db"));
-const fs_1 = __importDefault(require("fs"));
+const cloudinary_1 = require("cloudinary");
+const multer_storage_cloudinary_1 = require("multer-storage-cloudinary");
 const app = (0, express_1.default)();
 app.use(resolvers_1.authenticateUser);
 app.use(body_parser_1.default.json()); // Parser les requêtes JSON
 app.use((0, cors_1.default)()); // Autoriser les requêtes cross-origin
 const port = process.env.PORT || 3030;
-const uploadsDir = path_1.default.join(__dirname, "uploads");
-// Crée le dossier 'uploads' s'il n'existe pas
-if (!fs_1.default.existsSync(uploadsDir)) {
-    fs_1.default.mkdirSync(uploadsDir, { recursive: true });
-}
-const storage = multer_1.default.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, path_1.default.join(__dirname, "uploads")); // Le dossier où les fichiers sont stockés
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-        cb(null, uniqueSuffix + path_1.default.extname(file.originalname)); // Ajout de l'extension du fichier
+cloudinary_1.v2.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+// Configuration de Multer avec Cloudinary
+const storage = new multer_storage_cloudinary_1.CloudinaryStorage({
+    cloudinary: cloudinary_1.v2,
+    params: {
+        folder: "repti-track", // 📌 Nom du dossier dans Cloudinary
+        format: () => __awaiter(void 0, void 0, void 0, function* () { return "png"; }), // Format des images
+        public_id: (req, file) => Date.now().toString(), // Nom unique
     },
 });
 const upload = (0, multer_1.default)({ storage: storage });
 app.use("/uploads", express_1.default.static(path_1.default.join(__dirname, "uploads")));
-app.post("/api/file-upload", upload.single("file"), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.post("/api/upload", upload.single("image"), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const file = req.file;
-        const id = req.body.id; // Envoyé depuis le frontend
-        console.log("file", file);
-        console.log("id", id);
-        if (!file || !id) {
-            return res.status(400).send("Fichier ou reptileId manquant.");
+        if (!req.file) {
+            return res.status(400).json({ error: "Aucun fichier reçu" });
         }
-        const image_url = `https://back-hsvb.onrender.com:${port}/uploads/${file.filename}`;
-        // const image_url = `/uploads/${file.filename}`;
-        const query = "UPDATE reptiles SET image_url = ? WHERE id = ?";
-        const values = [image_url, id];
-        // Sauvegarder l'image_url dans la table reptiles
-        yield db_2.default.query(query, values);
-        res.status(200).json({ url: image_url });
+        // Lien de l'image sur Cloudinary
+        const imageUrl = req.file.path;
+        res.json({ imageUrl });
     }
     catch (error) {
         console.error("Erreur lors de l'upload :", error);
-        res.status(500).send("Erreur lors de l'upload.");
+        res.status(500).json({ error: "Erreur serveur" });
     }
 }));
 // Configurer Apollo Server

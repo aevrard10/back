@@ -11,56 +11,50 @@ import { sendDailyNotifications } from "./notifications/notificationService";
 import connection from "./db";
 
 import multer from "multer";
-import db from "./db";
-import fs from "fs";
-
+import { v2 as cloudinary } from "cloudinary";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
 const app: Application = express();
 app.use(authenticateUser);
 app.use(bodyParser.json()); // Parser les requêtes JSON
 app.use(cors()); // Autoriser les requêtes cross-origin
 const port = process.env.PORT || 3030;
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
-const uploadsDir = path.join(__dirname, "uploads");
-
-// Crée le dossier 'uploads' s'il n'existe pas
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, "uploads")); // Le dossier où les fichiers sont stockés
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname)); // Ajout de l'extension du fichier
+// Configuration de Multer avec Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "repti-track", // 📌 Nom du dossier dans Cloudinary
+    format: async () => "png", // Format des images
+    public_id: (req, file) => Date.now().toString(), // Nom unique
   },
 });
 
 const upload = multer({ storage: storage });
+
+
+
+
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 
-app.post("/api/file-upload", upload.single("file"), async (req, res) => {
+app.post("/api/upload", upload.single("image"), async (req: any, res:any) => {
   try {
-    const file = req.file;
-    const id = req.body.id; // Envoyé depuis le frontend
-    console.log("file", file);
-    console.log("id", id);
-    if (!file || !id) {
-      return res.status(400).send("Fichier ou reptileId manquant.");
+    if (!req.file) {
+      return res.status(400).json({ error: "Aucun fichier reçu" });
     }
-    const image_url = `https://back-hsvb.onrender.com:${port}/uploads/${file.filename}`;
 
-    // const image_url = `/uploads/${file.filename}`;
-    const query = "UPDATE reptiles SET image_url = ? WHERE id = ?";
-    const values = [image_url, id];
-    // Sauvegarder l'image_url dans la table reptiles
-    await db.query(query, values);
-
-    res.status(200).json({ url: image_url });
+    // Lien de l'image sur Cloudinary
+    const imageUrl = (req.file as any).path;
+    res.json({ imageUrl });
   } catch (error) {
     console.error("Erreur lors de l'upload :", error);
-    res.status(500).send("Erreur lors de l'upload.");
+    res.status(500).json({ error: "Erreur serveur" });
   }
 });
 

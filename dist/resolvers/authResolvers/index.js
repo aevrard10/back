@@ -13,7 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.authResolvers = void 0;
-const bcrypt_1 = __importDefault(require("bcrypt"));
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const db_1 = __importDefault(require("../../db"));
@@ -49,7 +49,7 @@ exports.authResolvers = {
                 if (existingUser.length > 0) {
                     throw new Error("Un utilisateur avec cet email existe déjà.");
                 }
-                const hashedPassword = yield bcrypt_1.default.hash(password, 10);
+                const hashedPassword = yield bcryptjs_1.default.hash(password, 10);
                 const [result] = (yield db_1.default
                     .promise()
                     .query("INSERT INTO users (username, email, password) VALUES (?, ?, ?)", [username, email, hashedPassword]));
@@ -65,7 +65,7 @@ exports.authResolvers = {
             }
         }),
         login: (_parent, args) => __awaiter(void 0, void 0, void 0, function* () {
-            const { email, password } = args.input;
+            const { email, password, expo_token } = args.input;
             if (!email || !password) {
                 throw new Error("Email et mot de passe sont requis.");
             }
@@ -78,9 +78,17 @@ exports.authResolvers = {
                 if (user.length === 0) {
                     throw new Error("Email ou mot de passe incorrect.");
                 }
-                const isPasswordValid = yield bcrypt_1.default.compare(password, user[0].password);
+                const isPasswordValid = yield bcryptjs_1.default.compare(password, user[0].password);
                 if (!isPasswordValid) {
                     throw new Error("Email ou mot de passe incorrect.");
+                }
+                if (expo_token) {
+                    yield db_1.default
+                        .promise()
+                        .query("UPDATE users SET expo_token = ? WHERE id = ?", [
+                        expo_token,
+                        user[0].id,
+                    ]);
                 }
                 const token = jsonwebtoken_1.default.sign({ id: user[0].id, username: user[0].username, email: user[0].email }, SECRET_KEY, { expiresIn: "30d" });
                 return {

@@ -8,13 +8,18 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const reptileResolvers_1 = require("./reptileResolvers");
 const authResolvers_1 = require("./authResolvers");
+const notificationsResolvers_1 = require("./notificationsResolvers");
+const measurementResolvers_1 = require("./measurementResolvers");
+const foodResolvers_1 = require("./foodResolvers");
 dotenv_1.default.config();
 exports.resolvers = {
-    Query: Object.assign(Object.assign({}, reptileResolvers_1.reptileResolvers.Query), authResolvers_1.authResolvers.Query),
-    Mutation: Object.assign(Object.assign({}, authResolvers_1.authResolvers.Mutation), reptileResolvers_1.reptileResolvers.Mutation),
+    Query: Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, reptileResolvers_1.reptileResolvers.Query), authResolvers_1.authResolvers.Query), notificationsResolvers_1.notificationsResolvers.Query), measurementResolvers_1.measurementResolvers.Query), foodResolvers_1.foodResolvers.Query),
+    Mutation: Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, authResolvers_1.authResolvers.Mutation), reptileResolvers_1.reptileResolvers.Mutation), notificationsResolvers_1.notificationsResolvers.Mutation), measurementResolvers_1.measurementResolvers.Mutation), foodResolvers_1.foodResolvers.Mutation),
 };
 const authenticateUser = (req, res, next) => {
     const authHeader = req.headers.token || req.headers.authorization;
+    console.log("req.headers", req.headers);
+    console.log("authHeader", authHeader);
     if (!authHeader) {
         req.user = null;
         return next(); // Laisser les requêtes publiques passer

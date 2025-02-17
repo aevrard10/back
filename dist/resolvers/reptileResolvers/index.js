@@ -15,40 +15,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.reptileResolvers = void 0;
 const db_1 = __importDefault(require("../../db"));
 const dbUtils_1 = require("../../db/utils/dbUtils");
-const db_2 = __importDefault(require("../../db"));
 exports.reptileResolvers = {
     Query: {
-        measurements: (_parent, args, context) => __awaiter(void 0, void 0, void 0, function* () {
-            var _a;
-            const userId = (_a = context.user) === null || _a === void 0 ? void 0 : _a.id;
-            if (!userId) {
-                throw new Error("Non autorisé");
-            }
-            const { reptile_id } = args;
-            // Vérifier si le reptile appartient à l'utilisateur
-            const checkReptileQuery = "SELECT * FROM reptiles WHERE id = ? AND user_id = ?";
-            const reptile = (yield db_1.default
-                .promise()
-                .query(checkReptileQuery, [reptile_id, userId]));
-            if (reptile[0].length === 0) {
-                throw new Error("Reptile non trouvé ou non autorisé");
-            }
-            // Récupérer les mesures
-            const query = `
-        SELECT id, reptile_id, date, weight, size
-        FROM measurements
-        WHERE reptile_id = ?
-        ORDER BY date ASC
-      `;
-            const [results] = (yield db_1.default
-                .promise()
-                .query(query, [reptile_id]));
-            const formattedResults = results.map((measurement) => (Object.assign(Object.assign({}, measurement), { date: measurement.date && !isNaN(new Date(measurement.date).getTime())
-                    ? new Intl.DateTimeFormat("fr-FR").format(new Date(measurement.date))
-                    : null })));
-            console.log(formattedResults);
-            return formattedResults;
-        }),
         reptileEvent: (_parent, _args, context) => __awaiter(void 0, void 0, void 0, function* () {
             var _a;
             const userId = (_a = context.user) === null || _a === void 0 ? void 0 : _a.id;
@@ -85,10 +53,8 @@ exports.reptileResolvers = {
                 day: "numeric",
             }).format(new Date(reptile.acquired_date));
             const formattedLastFed = new Intl.DateTimeFormat("fr-FR").format(new Date(reptile.last_fed));
-            const formattedNextVetVisit = new Intl.DateTimeFormat("fr-FR").format(new Date(reptile.next_vet_visit));
-            const formattedLastVetVisit = new Intl.DateTimeFormat("fr-FR").format(new Date(reptile.last_vet_visit));
             // Retourner le reptile trouvé
-            return Object.assign(Object.assign({}, reptile), { acquired_date: formattedAcquiredDate, last_fed: formattedLastFed, next_vet_visit: formattedNextVetVisit, last_vet_visit: formattedLastVetVisit });
+            return Object.assign(Object.assign({}, reptile), { acquired_date: formattedAcquiredDate, last_fed: formattedLastFed });
         }),
     },
     Mutation: {
@@ -125,15 +91,15 @@ exports.reptileResolvers = {
                 throw new Error("Non autorisé");
             }
             // Récupérer tous les champs de l'input
-            const { name, species, sort_of_species, sex, age, last_fed, feeding_schedule, diet, humidity_level, temperature_range, lighting_requirements, health_status, acquired_date, origin, location, notes, next_vet_visit, } = args.input;
+            const { name, species, sort_of_species, sex, age, last_fed, feeding_schedule, diet, humidity_level, temperature_range, health_status, acquired_date, origin, location, notes, } = args.input;
             // Générer la requête SQL avec tous les champs
             const query = `
         INSERT INTO reptiles (
           name, species, sort_of_species, sex, age, last_fed, feeding_schedule, 
-          diet, humidity_level, temperature_range, lighting_requirements, 
-          health_status, acquired_date, origin, location, notes, next_vet_visit, user_id
+          diet, humidity_level, temperature_range, 
+          health_status, acquired_date, origin, location, notes, user_id
         ) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
             // Exécuter la requête SQL avec les valeurs correspondantes
             const [result] = (yield db_1.default
@@ -149,13 +115,11 @@ exports.reptileResolvers = {
                 diet,
                 humidity_level,
                 temperature_range,
-                lighting_requirements,
                 health_status,
                 acquired_date,
                 origin,
                 location,
                 notes,
-                next_vet_visit,
                 userId,
             ]));
             // Retourner l'objet avec toutes les informations insérées
@@ -171,13 +135,11 @@ exports.reptileResolvers = {
                 diet,
                 humidity_level,
                 temperature_range,
-                lighting_requirements,
                 health_status,
                 acquired_date,
                 origin,
                 location,
                 notes,
-                next_vet_visit,
                 user_id: userId,
             };
         }),
@@ -210,79 +172,104 @@ exports.reptileResolvers = {
                 throw new Error("Erreur lors de l'ajout des notes au reptile.");
             }
         }),
-        addReptileImage: (_parent_1, _a, context_1) => __awaiter(void 0, [_parent_1, _a, context_1], void 0, function* (_parent, { id, image }, context) {
-            var _b;
-            // Vérifier l'utilisateur
-            const userId = (_b = context.user) === null || _b === void 0 ? void 0 : _b.id;
-            if (!userId) {
-                throw new Error("Non autorisé");
+        lastFedUpdate: (_parent, args) => __awaiter(void 0, void 0, void 0, function* () {
+            const { id, last_fed } = args;
+            if (!id || !last_fed) {
+                throw new Error("L'ID du reptile et la date du dernier repas sont requis.");
             }
-            // Si l'image n'existe pas
-            if (!image) {
-                throw new Error("Image non fournie");
-            }
-            // Définir l'URL de l'image stockée
-            const imageUrl = `http://localhost:3030/uploads/${image.filename}`;
+            const query = "UPDATE reptiles SET last_fed = ? WHERE id = ?";
             try {
-                // Mettre à jour la base de données avec l'URL de l'image
-                yield db_2.default.query("UPDATE reptiles SET image_url = ? WHERE id = ?", [
-                    imageUrl,
-                    id,
-                ]);
-                // Récupérer le reptile mis à jour
-                const [updatedReptile] = (yield db_2.default.query("SELECT * FROM reptiles WHERE id = ?", [id]));
-                return updatedReptile;
+                const resultSet = (yield (0, dbUtils_1.executeQuery)(query, [last_fed, id]));
+                if (resultSet.affectedRows === 0) {
+                    throw new Error(`Aucun reptile trouvé avec l'ID : ${id}`);
+                }
+                return {
+                    success: true,
+                    message: `La date du dernier repas a été mise à jour avec succès pour le reptile avec l'ID ${id}.`,
+                };
             }
             catch (error) {
-                console.error("Erreur lors de l'ajout de l'image :", error);
-                throw new Error("Erreur lors de l'ajout de l'image au reptile.");
+                console.error("Erreur lors de la mise à jour de la date du dernier repas :", error);
+                throw new Error("Erreur lors de la mise à jour de la date du dernier repas du reptile.");
             }
         }),
-        // Autre mutation pour supprimer l'image (si nécessaire)
-        deleteReptileImage: (_parent_1, _a) => __awaiter(void 0, [_parent_1, _a], void 0, function* (_parent, { id }) {
-            try {
-                // Mettre à jour la base de données pour supprimer l'image
-                yield db_2.default.query("UPDATE reptiles SET image_url = NULL WHERE id = ?", [
-                    id,
-                ]);
-                // Récupérer le reptile mis à jour
-                const [updatedReptile] = (yield db_2.default.query("SELECT * FROM reptiles WHERE id = ?", [id]));
-                return updatedReptile;
-            }
-            catch (error) {
-                console.error("Erreur lors de la suppression de l'image :", error);
-                throw new Error("Erreur lors de la suppression de l'image du reptile.");
-            }
-        }),
-        addMeasurement: (_parent, args, context) => __awaiter(void 0, void 0, void 0, function* () {
+        updateReptile: (_parent, args, context) => __awaiter(void 0, void 0, void 0, function* () {
             var _a;
             const userId = (_a = context.user) === null || _a === void 0 ? void 0 : _a.id;
             if (!userId) {
                 throw new Error("Non autorisé");
             }
-            const { reptile_id, date, weight, size } = args.input;
-            // Vérifier si le reptile appartient à l'utilisateur
-            const checkReptileQuery = "SELECT * FROM reptiles WHERE id = ? AND user_id = ?";
-            const reptile = (yield db_1.default
-                .promise()
-                .query(checkReptileQuery, [reptile_id, userId]));
-            if (reptile[0].length === 0) {
-                throw new Error("Reptile non trouvé ou non autorisé");
-            }
-            // Insérer la mesure dans la table measurements
+            const { id, input } = args;
+            const { name, species, sort_of_species, sex, age, last_fed, feeding_schedule, diet, humidity_level, temperature_range, health_status, acquired_date, origin, location, notes, } = input;
+            // Générer la requête SQL pour la mise à jour du reptile
             const query = `
-        INSERT INTO measurements (reptile_id, date, weight, size)
-        VALUES (?, ?, ?, ?)
-      `;
+          UPDATE reptiles 
+          SET 
+            name = ?, 
+            species = ?, 
+            sort_of_species = ?, 
+            sex = ?, 
+            age = ?, 
+            last_fed = ?, 
+            feeding_schedule = ?, 
+            diet = ?, 
+            humidity_level = ?, 
+            temperature_range = ?, 
+            health_status = ?, 
+            acquired_date = ?, 
+            origin = ?, 
+            location = ?, 
+            notes = ?
+          WHERE id = ? AND user_id = ?;
+        `;
+            // Exécuter la requête SQL
             const [result] = (yield db_1.default
                 .promise()
-                .query(query, [reptile_id, date, weight, size]));
+                .query(query, [
+                name,
+                species,
+                sort_of_species,
+                sex,
+                age,
+                last_fed,
+                feeding_schedule,
+                diet,
+                humidity_level,
+                temperature_range,
+                health_status,
+                acquired_date,
+                origin,
+                location,
+                notes,
+                id,
+                userId,
+            ]));
+            // Vérifier si le reptile a été mis à jour
+            if (result.affectedRows === 0) {
+                throw new Error("Reptile non trouvé ou non autorisé à modifier.");
+            }
             return {
-                id: result.insertId,
-                reptile_id,
-                date,
-                weight,
-                size,
+                success: true,
+                message: "Les données du reptile ont été mises à jour avec succès.",
+                reptile: {
+                    id,
+                    name,
+                    species,
+                    sort_of_species,
+                    sex,
+                    age,
+                    last_fed,
+                    feeding_schedule,
+                    diet,
+                    humidity_level,
+                    temperature_range,
+                    health_status,
+                    acquired_date,
+                    origin,
+                    location,
+                    notes,
+                    user_id: userId,
+                },
             };
         }),
     },

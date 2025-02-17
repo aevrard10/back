@@ -41,7 +41,7 @@ app.post("/api/file-upload", upload.single("file"), async (req, res) => {
     if (!file || !id) {
       return res.status(400).send("Fichier ou reptileId manquant.");
     }
-    const image_url = `http://192.168.1.20:${port}/uploads/${file.filename}`;
+    const image_url = `http://https://back-hsvb.onrender.com:${port}/uploads/${file.filename}`;
 
     // const image_url = `/uploads/${file.filename}`;
     const query = "UPDATE reptiles SET image_url = ? WHERE id = ?";

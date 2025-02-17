@@ -12,7 +12,7 @@ const connection = mysql2_1.default.createConnection({
     user: process.env.DB_USER, // Ton utilisateur MySQL
     password: "", // Ton mot de passe MySQL
     database: process.env.DB_NAME, // Le nom de ta base de données
-    port: 3000,
+    port: 3306,
 });
 // Tester la connexion
 connection.connect((err) => {

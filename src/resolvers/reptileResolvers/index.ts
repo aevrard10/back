@@ -38,6 +38,8 @@ export const reptileResolvers = {
         throw new Error("Reptile non trouvé");
       }
       const reptile = results[0];
+ 
+      
       const formattedAcquiredDate = new Intl.DateTimeFormat("fr-FR", {
         weekday: "long",
         year: "numeric",
@@ -48,20 +50,12 @@ export const reptileResolvers = {
       const formattedLastFed = new Intl.DateTimeFormat("fr-FR").format(
         new Date(reptile.last_fed)
       );
-      const formattedNextVetVisit = new Intl.DateTimeFormat("fr-FR").format(
-        new Date(reptile.next_vet_visit)
-      );
 
-      const formattedLastVetVisit = new Intl.DateTimeFormat("fr-FR").format(
-        new Date(reptile.last_vet_visit)
-      );
       // Retourner le reptile trouvé
       return {
         ...reptile,
         acquired_date: formattedAcquiredDate,
         last_fed: formattedLastFed,
-        next_vet_visit: formattedNextVetVisit,
-        last_vet_visit: formattedLastVetVisit,
       };
     },
   },
@@ -120,7 +114,6 @@ export const reptileResolvers = {
         origin,
         location,
         notes,
-        next_vet_visit,
       } = args.input;
 
       // Générer la requête SQL avec tous les champs
@@ -128,9 +121,9 @@ export const reptileResolvers = {
         INSERT INTO reptiles (
           name, species, sort_of_species, sex, age, last_fed, feeding_schedule, 
           diet, humidity_level, temperature_range, 
-          health_status, acquired_date, origin, location, notes, next_vet_visit, user_id
+          health_status, acquired_date, origin, location, notes, user_id
         ) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       // Exécuter la requête SQL avec les valeurs correspondantes
@@ -152,7 +145,6 @@ export const reptileResolvers = {
           origin,
           location,
           notes,
-          next_vet_visit,
           userId,
         ])) as OkPacket[];
 
@@ -174,7 +166,6 @@ export const reptileResolvers = {
         origin,
         location,
         notes,
-        next_vet_visit,
         user_id: userId,
       };
     },
@@ -213,6 +204,31 @@ export const reptileResolvers = {
       } catch (error) {
         console.error("Erreur lors de l'ajout des notes :", error);
         throw new Error("Erreur lors de l'ajout des notes au reptile.");
+      }
+    },
+    lastFedUpdate: async (_parent: any, args: any) => {
+      const { id, last_fed } = args;
+
+      if (!id || !last_fed) {
+        throw new Error("L'ID du reptile et la date du dernier repas sont requis.");
+      }
+
+      const query = "UPDATE reptiles SET last_fed = ? WHERE id = ?";
+
+      try {
+        const resultSet = (await executeQuery(query, [last_fed, id])) as any;
+
+        if (resultSet.affectedRows === 0) {
+          throw new Error(`Aucun reptile trouvé avec l'ID : ${id}`);
+        }
+
+        return {
+          success: true,
+          message: `La date du dernier repas a été mise à jour avec succès pour le reptile avec l'ID ${id}.`,
+        };
+      } catch (error) {
+        console.error("Erreur lors de la mise à jour de la date du dernier repas :", error);
+        throw new Error("Erreur lors de la mise à jour de la date du dernier repas du reptile.");
       }
     },
   },

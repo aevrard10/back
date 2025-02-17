@@ -14,6 +14,9 @@ import multer from "multer";
 import db from "./db";
 
 const app: Application = express();
+app.use(authenticateUser);
+app.use(bodyParser.json()); // Parser les requêtes JSON
+app.use(cors()); // Autoriser les requêtes cross-origin
 const port = 3030;
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -27,9 +30,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.use(authenticateUser);
-app.use(bodyParser.json()); // Parser les requêtes JSON
-app.use(cors()); // Autoriser les requêtes cross-origin
+
 
 app.post("/api/file-upload", upload.single("file"), async (req, res) => {
   try {
@@ -40,7 +41,7 @@ app.post("/api/file-upload", upload.single("file"), async (req, res) => {
     if (!file || !id) {
       return res.status(400).send("Fichier ou reptileId manquant.");
     }
-    const image_url = `http://localhost:${port}/uploads/${file.filename}`;
+    const image_url = `http://192.168.1.20:${port}/uploads/${file.filename}`;
 
     // const image_url = `/uploads/${file.filename}`;
     const query = "UPDATE reptiles SET image_url = ? WHERE id = ?";

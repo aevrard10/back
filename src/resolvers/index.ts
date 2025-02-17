@@ -5,6 +5,7 @@ import { reptileResolvers } from "./reptileResolvers";
 import { authResolvers } from "./authResolvers";
 import { notificationsResolvers } from "./notificationsResolvers";
 import { measurementResolvers } from "./measurementResolvers";
+import { foodResolvers } from "./foodResolvers";
 dotenv.config();
 
 export const resolvers = {
@@ -13,17 +14,21 @@ export const resolvers = {
     ...authResolvers.Query,
     ...notificationsResolvers.Query,
     ...measurementResolvers.Query,
+    ...foodResolvers.Query,
   },
   Mutation: {
     ...authResolvers.Mutation,
     ...reptileResolvers.Mutation,
     ...notificationsResolvers.Mutation,
     ...measurementResolvers.Mutation,
+    ...foodResolvers.Mutation,
   },
 };
 
 export const authenticateUser = (req: any, res: any, next: NextFunction) => {
   const authHeader = req.headers.token || req.headers.authorization;
+console.log("req.headers", req.headers);
+  console.log("authHeader", authHeader);
   if (!authHeader) {
     req.user = null;
     return next(); // Laisser les requêtes publiques passer

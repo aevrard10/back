@@ -165,6 +165,29 @@ type MutationResponse {
   success: Boolean!
   message: String!
 }
+input ReptileInput {
+  name: String!
+  species: String!
+  sort_of_species: String
+  sex: String
+  age: Int
+  last_fed: String
+  feeding_schedule: String
+  diet: String
+  humidity_level: String
+  temperature_range: String
+  health_status: String
+  acquired_date: String
+  origin: String
+  location: String
+  notes: String
+}
+
+type ReptileUpdateResponse {
+  success: Boolean!
+  message: String!
+  reptile: Reptile
+}
 
 type Mutation {
   addReptile(input: AddReptileInput!): Reptile
@@ -180,6 +203,8 @@ type Mutation {
   lastFedUpdate(id: ID!, last_fed: String!): LastFedUpdateResponse
     updateFoodStock(input: UpdateFoodStockInput!): MutationResponse!
   addFoodStock(input: AddFoodStockInput!): FoodStock!
+    updateReptile(id: ID!, input: ReptileInput!): ReptileUpdateResponse!
+
 }
 
 type Query {

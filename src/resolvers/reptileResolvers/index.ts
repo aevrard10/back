@@ -231,5 +231,107 @@ export const reptileResolvers = {
         throw new Error("Erreur lors de la mise à jour de la date du dernier repas du reptile.");
       }
     },
+
+      updateReptile: async (_parent: any, args: { id: string, input: any }, context: any) => {
+        const userId = context.user?.id;
+    
+        if (!userId) {
+          throw new Error("Non autorisé");
+        }
+    
+        const { id, input } = args;
+        const {
+          name,
+          species,
+          sort_of_species,
+          sex,
+          age,
+          last_fed,
+          feeding_schedule,
+          diet,
+          humidity_level,
+          temperature_range,
+          health_status,
+          acquired_date,
+          origin,
+          location,
+          notes,
+        } = input;
+    
+        // Générer la requête SQL pour la mise à jour du reptile
+        const query = `
+          UPDATE reptiles 
+          SET 
+            name = ?, 
+            species = ?, 
+            sort_of_species = ?, 
+            sex = ?, 
+            age = ?, 
+            last_fed = ?, 
+            feeding_schedule = ?, 
+            diet = ?, 
+            humidity_level = ?, 
+            temperature_range = ?, 
+            health_status = ?, 
+            acquired_date = ?, 
+            origin = ?, 
+            location = ?, 
+            notes = ?
+          WHERE id = ? AND user_id = ?;
+        `;
+    
+        // Exécuter la requête SQL
+        const [result] = (await connection
+          .promise()
+          .query(query, [
+            name,
+            species,
+            sort_of_species,
+            sex,
+            age,
+            last_fed,
+            feeding_schedule,
+            diet,
+            humidity_level,
+            temperature_range,
+            health_status,
+            acquired_date,
+            origin,
+            location,
+            notes,
+            id,
+            userId,
+          ])) as OkPacket[];
+    
+        // Vérifier si le reptile a été mis à jour
+        if (result.affectedRows === 0) {
+          throw new Error("Reptile non trouvé ou non autorisé à modifier.");
+        }
+    
+        return {
+          success: true,
+          message: "Les données du reptile ont été mises à jour avec succès.",
+          reptile: {
+            id,
+            name,
+            species,
+            sort_of_species,
+            sex,
+            age,
+            last_fed,
+            feeding_schedule,
+            diet,
+            humidity_level,
+            temperature_range,
+            health_status,
+            acquired_date,
+            origin,
+            location,
+            notes,
+            user_id: userId,
+          },
+        };
+      },
+    
   },
 };

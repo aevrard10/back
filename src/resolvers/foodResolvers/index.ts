@@ -1,4 +1,4 @@
-import { OkPacket } from "mysql2";
+import { OkPacket, RowDataPacket } from "mysql2";
 import { executeQuery } from "../../db/utils/dbUtils";
 
 export const foodResolvers = {
@@ -16,19 +16,20 @@ export const foodResolvers = {
     },
 
     // Récupérer l'historique des changements de stock
-    // foodStockHistory: async (_parent: any, _args: any, context: any) => {
-    //   const userId = context.user?.id;
-    //   if (!userId) throw new Error("Non autorisé");
-
-    //   const query = `
-    //     SELECT fsh.*, fs.food_name AS name 
-    //     FROM food_stock_history fsh 
-    //     JOIN food_stock fs ON fsh.food_id = fs.id
-    //     WHERE fs.user_id = ?
-    //     ORDER BY fsh.date DESC
-    //   `;
-    //   return await executeQuery(query, [userId]);
-    // },
+    foodStockHistory: async (_parent: any, _args: any, context: any) => {
+      const userId = context.user?.id;
+      if (!userId) throw new Error("Non autorisé");
+    
+      const query = `
+        SELECT fsh.*, fs.name
+        FROM food_stock_history fsh
+        JOIN food_stock fs ON fsh.food_id = fs.id
+        ORDER BY fsh.date DESC
+      `;
+      
+      return await executeQuery(query, [userId]);
+    },
+    
   },
 
   Mutation: {
@@ -60,40 +61,44 @@ export const foodResolvers = {
     }},
 
     // Mettre à jour la quantité d'un aliment
-    // updateFoodStock: async (_parent: any, args: any, context: any) => {
-    //   try {
-    //     const userId = context.user?.id;
-    //     if (!userId) throw new Error("Non autorisé");
-
-    //     const { food_id, quantity_change, reason } = args.input;
-
-    //     // Vérifier si l'aliment existe
-    //     const checkQuery = "SELECT * FROM food_stock WHERE id = ? AND user_id = ?";
-    //     const checkResult = await executeQuery(checkQuery, [food_id, userId]);
-
-    //     if (checkResult.length === 0) {
-    //       return { success: false, message: "Cet aliment n'existe pas." };
-    //     }
-
-    //     // Mettre à jour le stock
-    //     const updateQuery = `
-    //       UPDATE food_stock 
-    //       SET quantity = quantity + ?, last_updated = CURRENT_TIMESTAMP
-    //       WHERE id = ? AND user_id = ?
-    //     `;
-    //     await executeQuery(updateQuery, [quantity_change, food_id, userId]);
-
-    //     // Ajouter une entrée dans l'historique
-    //     const historyQuery = `
-    //       INSERT INTO food_stock_history (food_id, quantity_change, reason, date) 
-    //       VALUES (?, ?, ?, NOW())
-    //     `;
-    //     await executeQuery(historyQuery, [food_id, quantity_change, reason]);
-
-    //     return { success: true, message: "Stock mis à jour avec succès." };
-    //   } catch (error) {
-    //     return { success: false, message: "Erreur lors de la mise à jour du stock." };
-    //   }
-    // },
+    updateFoodStock: async (_parent: any, args: any, context: any) => {
+      try {
+        const userId = context.user?.id;
+        if (!userId) throw new Error("Non autorisé");
+    
+        const { food_id, quantity_change, reason } = args.input;
+        console.log("Requête reçue :", { food_id, quantity_change, reason });
+    
+        // Vérifier si l'aliment existe
+        const checkQuery = "SELECT * FROM food_stock WHERE id = ?";
+        const checkResult = await executeQuery(checkQuery, [food_id]) as RowDataPacket[];
+    
+        if (checkResult.length === 0) {
+          console.log("Aucun aliment trouvé pour cet ID et cet utilisateur.");
+          return { success: false, message: "Cet aliment n'existe pas." };
+        }
+    
+        // Mettre à jour le stock
+        const updateQuery = `
+          UPDATE food_stock 
+          SET quantity = quantity + ?, last_updated = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `;
+        await executeQuery(updateQuery, [quantity_change, food_id]);
+    
+        // Ajouter une entrée dans l'historique
+        const historyQuery = `
+          INSERT INTO food_stock_history (food_id, quantity_change, reason, date) 
+          VALUES (?, ?, ?, NOW())
+        `;
+        await executeQuery(historyQuery, [food_id, quantity_change, reason]);
+    
+        return { success: true, message: "Stock mis à jour avec succès." };
+      } catch (error) {
+        console.error("Erreur serveur :", error);
+        return { success: false, message: "Erreur lors de la mise à jour du stock." };
+      }
+    }
+    
   },
 };

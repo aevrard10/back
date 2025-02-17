@@ -12,12 +12,19 @@ import connection from "./db";
 
 import multer from "multer";
 import db from "./db";
+import fs from "fs";
 
 const app: Application = express();
 app.use(authenticateUser);
 app.use(bodyParser.json()); // Parser les requêtes JSON
 app.use(cors()); // Autoriser les requêtes cross-origin
 const port = 3030;
+const uploadsDir = path.join(__dirname, "uploads");
+
+// Crée le dossier 'uploads' s'il n'existe pas
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, path.join(__dirname, "uploads")); // Le dossier où les fichiers sont stockés

@@ -25,11 +25,17 @@ const notificationService_1 = require("./notifications/notificationService");
 const db_1 = __importDefault(require("./db"));
 const multer_1 = __importDefault(require("multer"));
 const db_2 = __importDefault(require("./db"));
+const fs_1 = __importDefault(require("fs"));
 const app = (0, express_1.default)();
 app.use(resolvers_1.authenticateUser);
 app.use(body_parser_1.default.json()); // Parser les requêtes JSON
 app.use((0, cors_1.default)()); // Autoriser les requêtes cross-origin
 const port = 3030;
+const uploadsDir = path_1.default.join(__dirname, "uploads");
+// Crée le dossier 'uploads' s'il n'existe pas
+if (!fs_1.default.existsSync(uploadsDir)) {
+    fs_1.default.mkdirSync(uploadsDir, { recursive: true });
+}
 const storage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
         cb(null, path_1.default.join(__dirname, "uploads")); // Le dossier où les fichiers sont stockés

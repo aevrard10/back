@@ -30,7 +30,7 @@ const app = (0, express_1.default)();
 app.use(resolvers_1.authenticateUser);
 app.use(body_parser_1.default.json()); // Parser les requêtes JSON
 app.use((0, cors_1.default)()); // Autoriser les requêtes cross-origin
-const port = 3030;
+const port = process.env.PORT || 3030;
 const uploadsDir = path_1.default.join(__dirname, "uploads");
 // Crée le dossier 'uploads' s'il n'existe pas
 if (!fs_1.default.existsSync(uploadsDir)) {
@@ -56,7 +56,7 @@ app.post("/api/file-upload", upload.single("file"), (req, res) => __awaiter(void
         if (!file || !id) {
             return res.status(400).send("Fichier ou reptileId manquant.");
         }
-        const image_url = `https://back-hsvb.onrender.com/uploads/${file.filename}`;
+        const image_url = `https://back-hsvb.onrender.com:${port}/uploads/${file.filename}`;
         // const image_url = `/uploads/${file.filename}`;
         const query = "UPDATE reptiles SET image_url = ? WHERE id = ?";
         const values = [image_url, id];

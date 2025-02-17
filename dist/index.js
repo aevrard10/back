@@ -17,7 +17,6 @@ const apollo_server_express_1 = require("apollo-server-express");
 const shemas_1 = require("./shemas");
 const resolvers_1 = require("./resolvers");
 const body_parser_1 = __importDefault(require("body-parser"));
-const path_1 = __importDefault(require("path"));
 const node_cron_1 = __importDefault(require("node-cron"));
 // Configuration des middlewares globaux
 const cors_1 = __importDefault(require("cors"));
@@ -25,36 +24,40 @@ const notificationService_1 = require("./notifications/notificationService");
 const db_1 = __importDefault(require("./db"));
 const multer_1 = __importDefault(require("multer"));
 const cloudinary_1 = require("cloudinary");
-const multer_storage_cloudinary_1 = require("multer-storage-cloudinary");
+const streamifier_1 = __importDefault(require("streamifier"));
 const app = (0, express_1.default)();
 app.use(resolvers_1.authenticateUser);
 app.use(body_parser_1.default.json()); // Parser les requêtes JSON
 app.use((0, cors_1.default)()); // Autoriser les requêtes cross-origin
 const port = process.env.PORT || 3030;
+// Configuration Cloudinary
 cloudinary_1.v2.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
-// Configuration de Multer avec Cloudinary
-const storage = new multer_storage_cloudinary_1.CloudinaryStorage({
-    cloudinary: cloudinary_1.v2,
-    params: {
-        folder: "repti-track", // 📌 Nom du dossier dans Cloudinary
-        format: () => __awaiter(void 0, void 0, void 0, function* () { return "png"; }), // Format des images
-        public_id: (req, file) => Date.now().toString(), // Nom unique
-    },
-});
+// Configuration de Multer pour gérer l'upload
+const storage = multer_1.default.memoryStorage(); // Utilise la mémoire pour stocker les fichiers temporairement
 const upload = (0, multer_1.default)({ storage: storage });
-app.use("/uploads", express_1.default.static(path_1.default.join(__dirname, "uploads")));
+// Route d'upload d'image
 app.post("/api/upload", upload.single("image"), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         if (!req.file) {
             return res.status(400).json({ error: "Aucun fichier reçu" });
         }
-        // Lien de l'image sur Cloudinary
-        const imageUrl = req.file.path;
-        res.json({ imageUrl });
+        // Envoi de l'image à Cloudinary via un stream
+        const uploadStream = cloudinary_1.v2.uploader.upload_stream({
+            folder: "repti-track", // Nom du dossier dans Cloudinary
+            public_id: Date.now().toString(), // Nom unique de l'image
+        }, (error, result) => {
+            if (error) {
+                return res.status(500).json({ error: "Erreur Cloudinary", details: error });
+            }
+            // Renvoie l'URL de l'image Cloudinary après upload réussi
+            res.json({ imageUrl: result === null || result === void 0 ? void 0 : result.secure_url });
+        });
+        // Convertir le fichier en stream pour Cloudinary
+        streamifier_1.default.createReadStream(req.file.buffer).pipe(uploadStream);
     }
     catch (error) {
         console.error("Erreur lors de l'upload :", error);

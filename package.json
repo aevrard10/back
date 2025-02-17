@@ -14,11 +14,13 @@
   "license": "ISC",
   "dependencies": {
     "apollo-server-express": "^3.13.0",
+    "axios": "^1.7.9",
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.7",
     "expo-server-sdk": "^3.13.0",
     "express": "^4.21.2",
     "express-validator": "^7.2.0",
+    "form-data": "^4.0.2",
     "graphql": "^16.9.0",
     "graphql-tools": "^9.0.6",
     "graphql-upload-ts": "^2.1.2",

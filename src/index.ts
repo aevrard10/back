@@ -34,28 +34,41 @@ app.post("/api/upload", upload.single("image"), async (req, res) => {
       return res.status(400).json({ error: "Aucun fichier reçu" });
     }
 
-    // Envoi de l'image à Cloudinary via un stream
+    // Upload de l'image sur Cloudinary
     const uploadStream = cloudinary.uploader.upload_stream(
       {
-        folder: "repti-track", // Nom du dossier dans Cloudinary
-        public_id: Date.now().toString(), // Nom unique de l'image
+        folder: "repti-track", // Nom du dossier Cloudinary
+        public_id: Date.now().toString(), // Identifiant unique pour l'image
       },
-      (error, result) => {
+      async (error, result) => {
         if (error) {
           return res.status(500).json({ error: "Erreur Cloudinary", details: error });
         }
-        // Renvoie l'URL de l'image Cloudinary après upload réussi
-        res.json({ imageUrl: result?.secure_url });
+
+        // Si l'upload est réussi, récupère l'URL de l'image
+        const imageUrl = result?.secure_url;
+
+        // Enregistrer l'URL dans la base de données
+        const reptileId = req.body.reptileId; // ID du reptile que tu veux mettre à jour
+        await connection.promise().query(
+          `UPDATE reptiles SET image_url = ? WHERE id = ?`,
+          [imageUrl, reptileId]
+        );
+
+        // Répondre avec l'URL de l'image
+        res.json({ imageUrl });
       }
     );
 
-    // Convertir le fichier en stream pour Cloudinary
+    // Convertir l'image en stream et l'envoyer à Cloudinary
     streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
+
   } catch (error) {
     console.error("Erreur lors de l'upload :", error);
     res.status(500).json({ error: "Erreur serveur" });
   }
 });
+
 // Configurer Apollo Server
 
 // @ts-nocheck

@@ -13,9 +13,10 @@ import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import streamifier from "streamifier";
 const app: Application = express();
-app.use(authenticateUser);
 app.use(bodyParser.json()); // Parser les requêtes JSON
 app.use(cors()); // Autoriser les requêtes cross-origin
+app.use(authenticateUser);
+
 const port = process.env.PORT || 3030;
 // Configuration Cloudinary
 cloudinary.config({

@@ -26,27 +26,32 @@ export const resolvers = {
 };
 
 export const authenticateUser = (req: any, res: any, next: NextFunction) => {
-  const authHeader = req.headers.token || req.headers.authorization;
-console.log("req.headers", req.headers);
+  const authHeader = req.headers.authorization || req.headers.token;
+  
+  console.log("req.headers", req.headers);
   console.log("authHeader", authHeader);
+
   if (!authHeader) {
     req.user = null;
-    return next(); // Laisser les requêtes publiques passer
+    return next(); // Laisser passer les requêtes publiques
   }
 
-  const token = authHeader; // Récupère le jeton après "Bearer"
+  // Vérifier si le token commence par "Bearer " et l'extraire
+  const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : authHeader;
 
   if (!token) {
     console.error("Jeton manquant dans l'en-tête Authorization");
     req.user = null;
     return next();
   }
+
   try {
-    const decoded = jwt.verify(token, process.env.SECRET_KEY!);
-    req.user = decoded; // Ajouter les données utilisateur au contexte de la requête
-    next();
+    const decoded = jwt.verify(token, process.env.SECRET_KEY!) as any;
+    req.user = decoded; // Ajouter les infos utilisateur à la requête
   } catch (err) {
     console.error("Erreur de validation du token :", err);
-    res.status(401).json({ message: "Token invalide ou expiré" });
+    req.user = null; // Ne pas bloquer, juste invalider l'utilisateur
   }
+
+  next(); // Passer au middleware suivant
 };

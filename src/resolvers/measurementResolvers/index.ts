@@ -19,10 +19,9 @@ export const measurementResolvers = {
       // Vérifier si le reptile appartient à l'utilisateur
       const checkReptileQuery =
         "SELECT * FROM reptiles WHERE id = ? AND user_id = ?";
-      const reptile = (await connection.query(checkReptileQuery, [
-        reptile_id,
-        userId,
-      ])) as any;
+      const reptile = (await connection
+        .promise()
+        .query(checkReptileQuery, [reptile_id, userId])) as any;
 
       if (reptile[0].length === 0) {
         throw new Error("Reptile non trouvé ou non autorisé");
@@ -35,7 +34,9 @@ export const measurementResolvers = {
         WHERE reptile_id = ?
         ORDER BY date ASC
       `;
-      const [results] = (await connection.query(query, [reptile_id])) as any;
+      const [results] = (await connection
+        .promise()
+        .query(query, [reptile_id])) as any;
 
       const formattedResults = results.map((measurement: any) => ({
         ...measurement,
@@ -68,10 +69,9 @@ export const measurementResolvers = {
       // Vérifier si le reptile appartient à l'utilisateur
       const checkReptileQuery =
         "SELECT * FROM reptiles WHERE id = ? AND user_id = ?";
-      const reptile = (await connection.query(checkReptileQuery, [
-        reptile_id,
-        userId,
-      ])) as any;
+      const reptile = (await connection
+        .promise()
+        .query(checkReptileQuery, [reptile_id, userId])) as any;
 
       if (reptile[0].length === 0) {
         throw new Error("Reptile non trouvé ou non autorisé");
@@ -82,14 +82,16 @@ export const measurementResolvers = {
         INSERT INTO measurements (reptile_id, date, weight, size, size_mesure, weight_mesure)
         VALUES (?, ?, ?, ?, ?, ?)
       `;
-      const [result] = (await connection.query(query, [
-        reptile_id,
-        date,
-        weight,
-        size,
-        size_mesure,
-        weight_mesure,
-      ])) as OkPacket[];
+      const [result] = (await connection
+        .promise()
+        .query(query, [
+          reptile_id,
+          date,
+          weight,
+          size,
+          size_mesure,
+          weight_mesure,
+        ])) as OkPacket[];
 
       return {
         id: result.insertId,

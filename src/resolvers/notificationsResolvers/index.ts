@@ -12,7 +12,7 @@ export const notificationsResolvers = {
 
       // Sélectionner toutes les notifications d'un utilisateur, triées par date
       const query = `SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC`;
-      const [notifications] = await connection.promise().query(query, [userId]);
+      const [notifications] = await connection.query(query, [userId]);
 
       return notifications;
     },

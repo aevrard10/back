@@ -12,7 +12,7 @@ export const reptileResolvers = {
       }
 
       const query = "SELECT * FROM reptile_events WHERE user_id = ?";
-      const results = await connection.promise().query(query, [userId]);
+      const results = await connection.query(query, [userId]);
 
       return results[0];
     },
@@ -24,7 +24,7 @@ export const reptileResolvers = {
       }
 
       const query = "SELECT * FROM reptiles WHERE user_id = ?";
-      const results = await connection.promise().query(query, [userId]);
+      const results = await connection.query(query, [userId]);
 
       return results[0];
     },
@@ -173,7 +173,7 @@ export const reptileResolvers = {
     deleteReptile: async (_parent: any, args: { id: string }) => {
       const query = "DELETE FROM reptiles WHERE id = ?";
 
-      const [result] = await connection.promise().query(query, [args.id]);
+      const [result] = await connection.query(query, [args.id]);
 
       if ((result as OkPacket).affectedRows === 0) {
         throw new Error("Reptile non trouvé");

@@ -53,7 +53,7 @@ app.post("/api/upload", upload.single("image"), async (req, res) => {
 
         // Enregistrer l'URL dans la base de données
         const reptileId = req.body.reptileId; // ID du reptile que tu veux mettre à jour
-        await connection.query(
+        await connection.promise().query(
           `UPDATE reptiles SET image_url = ? WHERE id = ?`,
           [imageUrl, reptileId]
         );
@@ -89,7 +89,7 @@ cron.schedule("0 8 * * *", async () => {
   console.log("Vérification des événements du jour...");
 
   // Récupérer tous les utilisateurs avec leurs tokens Expo
-  const [users] = await connection.query(`
+  const [users] = await connection.promise().query(`
     SELECT id, expo_token FROM users WHERE expo_token IS NOT NULL
   `);
 
@@ -98,7 +98,7 @@ cron.schedule("0 8 * * *", async () => {
     console.log(`Envoi des notifications à l'utilisateur ${user.id}`);
 
     // Récupérer les événements du jour pour cet utilisateur
-    const [events] = (await connection.query(
+    const [events] = (await connection.promise().query(
       `
       SELECT * FROM reptile_events WHERE user_id = ? AND DATE(event_date) = CURDATE()
     `,

@@ -12,7 +12,10 @@ const connection = mysql.createPool({
   port: 3306, // Port MySQL
   connectTimeout: 20000, // Timeout de 20 secondes
 });
-
+console.log("MYSQLHOST:", process.env.MYSQLHOST);
+console.log("MYSQLPORT:", process.env.MYSQLPORT);
+console.log("MYSQLUSER:", process.env.MYSQLUSER);
+console.log("MYSQLDATABASE:", process.env.MYSQLDATABASE, process.env.MYSQL_DATABASE);
 // connection.connect((err) => {
 //   if (err) {
 //     console.error("Erreur de connexion à la base de données:", err);

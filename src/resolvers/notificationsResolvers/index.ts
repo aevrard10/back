@@ -30,9 +30,9 @@ export const notificationsResolvers = {
 
       // Compter le nombre de notifications non lues
       const query = `SELECT COUNT(*) AS unread_count FROM notifications WHERE user_id = ? AND \`read\` = FALSE`;
-      const [result] = (await connection
-        .promise()
-        .query(query, [userId])) as RowDataPacket[];
+      const [result] = (await connection.query(query, [
+        userId,
+      ])) as RowDataPacket[];
 
       return result[0].unread_count;
     },
@@ -55,9 +55,7 @@ export const notificationsResolvers = {
         throw new Error("L'identifiant de la notification est requis");
       }
       const query = `UPDATE notifications SET \`read\` = TRUE WHERE id = ? AND user_id = ?`;
-      const [result] = await connection
-        .promise()
-        .query(query, [args.id, userId]);
+      const [result] = await connection.query(query, [args.id, userId]);
 
       if ((result as OkPacket).affectedRows === 0) {
         throw new Error("Notification non trouvée ou non autorisée");

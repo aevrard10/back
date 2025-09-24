@@ -37,11 +37,10 @@ export const authResolvers = {
       }
 
       try {
-        const [existingUser] = (await connection
-          .promise()
-          .query("SELECT id FROM users WHERE email = ?", [
-            email,
-          ])) as RowDataPacket[];
+        const [existingUser] = (await connection.query(
+          "SELECT id FROM users WHERE email = ?",
+          [email]
+        )) as RowDataPacket[];
 
         if (existingUser.length > 0) {
           throw new Error("Un utilisateur avec cet email existe déjà.");
@@ -49,12 +48,10 @@ export const authResolvers = {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const [result] = (await connection
-          .promise()
-          .query(
-            "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
-            [username, email, hashedPassword]
-          )) as OkPacket[];
+        const [result] = (await connection.query(
+          "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
+          [username, email, hashedPassword]
+        )) as OkPacket[];
 
         return {
           success: true,
@@ -77,11 +74,10 @@ export const authResolvers = {
       }
 
       try {
-        const [user] = (await connection
-          .promise()
-          .query("SELECT * FROM users WHERE email = ?", [
-            email,
-          ])) as RowDataPacket[];
+        const [user] = (await connection.query(
+          "SELECT * FROM users WHERE email = ?",
+          [email]
+        )) as RowDataPacket[];
 
         if (user.length === 0) {
           throw new Error("Email ou mot de passe incorrect.");
@@ -96,12 +92,10 @@ export const authResolvers = {
           throw new Error("Email ou mot de passe incorrect.");
         }
         if (expo_token) {
-          await connection
-            .promise()
-            .query("UPDATE users SET expo_token = ? WHERE id = ?", [
-              expo_token,
-              user[0].id,
-            ]);
+          await connection.query(
+            "UPDATE users SET expo_token = ? WHERE id = ?",
+            [expo_token, user[0].id]
+          );
         }
         const token = jwt.sign(
           { id: user[0].id, username: user[0].username, email: user[0].email },

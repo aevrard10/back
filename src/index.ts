@@ -43,7 +43,9 @@ app.post("/api/upload", upload.single("image"), async (req, res) => {
       },
       async (error, result) => {
         if (error) {
-          return res.status(500).json({ error: "Erreur Cloudinary", details: error });
+          return res
+            .status(500)
+            .json({ error: "Erreur Cloudinary", details: error });
         }
 
         // Si l'upload est réussi, récupère l'URL de l'image
@@ -63,7 +65,6 @@ app.post("/api/upload", upload.single("image"), async (req, res) => {
 
     // Convertir l'image en stream et l'envoyer à Cloudinary
     streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
-
   } catch (error) {
     console.error("Erreur lors de l'upload :", error);
     res.status(500).json({ error: "Erreur serveur" });
@@ -117,7 +118,6 @@ cron.schedule("0 8 * * *", async () => {
         VALUES (?, ?, ?, ?)
       `;
       await connection
-        .promise()
         .query(notificationQuery, [user.id, notificationMessage, false, false])
         .catch((error) => {
           console.error(

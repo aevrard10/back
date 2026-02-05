@@ -51,7 +51,7 @@ export const foodResolvers = {
         id: result.insertId,
         name,
         quantity,
-        unit: "unit", // Valeur par défaut
+        unit: "restant(s)", // Valeur par défaut
         last_updated: new Date().toISOString(),
         type,
       };

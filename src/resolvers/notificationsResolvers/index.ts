@@ -63,7 +63,43 @@ export const notificationsResolvers = {
         throw new Error("Notification non trouvée ou non autorisée");
       }
 
-      return { success: true, message: "Notification marquée comme lue" };
+      const [rows] = (await connection
+        .promise()
+        .query("SELECT * FROM notifications WHERE id = ? AND user_id = ?", [
+          args.id,
+          userId,
+        ])) as RowDataPacket[];
+
+      if (rows.length === 0) {
+        throw new Error("Notification non trouvée");
+      }
+
+      return rows[0];
+    },
+    markAllNotificationsAsRead: async (
+      _parent: any,
+      _args: { user_id: number },
+      context: any
+    ) => {
+      const userId = context.user?.id;
+      if (!userId) {
+        throw new Error("Non autorisé");
+      }
+
+      await connection
+        .promise()
+        .query("UPDATE notifications SET `read` = TRUE WHERE user_id = ?", [
+          userId,
+        ]);
+
+      const [rows] = (await connection
+        .promise()
+        .query(
+          "SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC",
+          [userId]
+        )) as RowDataPacket[];
+
+      return rows;
     },
   },
 };

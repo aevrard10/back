@@ -47,7 +47,6 @@ export const measurementResolvers = {
               )
             : null,
       }));
-      console.log(formattedResults);
       return formattedResults;
     },
   },

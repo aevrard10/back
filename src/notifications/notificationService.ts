@@ -28,7 +28,6 @@ async function sendDailyNotifications(expoPushToken: string, message: any) {
       tickets.push(...ticketChunk);
     }
 
-    console.log("Notifications envoyées : ", tickets);
   } catch (error) {
     console.error("Erreur lors de l'envoi des notifications : ", error);
   }

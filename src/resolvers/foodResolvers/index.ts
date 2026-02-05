@@ -67,14 +67,11 @@ export const foodResolvers = {
         if (!userId) throw new Error("Non autorisé");
     
         const { food_id, quantity_change, reason } = args.input;
-        console.log("Requête reçue :", { food_id, quantity_change, reason });
-    
         // Vérifier si l'aliment existe
         const checkQuery = "SELECT * FROM food_stock WHERE id = ?";
         const checkResult = await executeQuery(checkQuery, [food_id]) as RowDataPacket[];
     
         if (checkResult.length === 0) {
-          console.log("Aucun aliment trouvé pour cet ID et cet utilisateur.");
           return { success: false, message: "Cet aliment n'existe pas." };
         }
     

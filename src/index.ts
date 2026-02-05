@@ -96,7 +96,6 @@ const server = new ApolloServer({
   typeDefs,
   resolvers,
   context: ({ req }: { req: { user?: any } }) => {
-    console.log("Utilisateur authentifié :", req.user);
     return { user: req.user || null };
   },
 });
@@ -104,8 +103,6 @@ const server = new ApolloServer({
 // Planifier l'exécution de la vérification tous les jours à 8h00 du matin: 0 8 * * *
 cron.schedule("0 8 * * *", async () => {
   // * * * * * pour tester toutes les minutes
-  console.log("Vérification des événements du jour...");
-
   // Récupérer tous les utilisateurs avec leurs tokens Expo
   const [users] = await connection.promise().query(`
     SELECT id, expo_token FROM users WHERE expo_token IS NOT NULL
@@ -113,8 +110,6 @@ cron.schedule("0 8 * * *", async () => {
 
   // Pour chaque utilisateur, envoyer des notifications
   for (const user of users as any[]) {
-    console.log(`Envoi des notifications à l'utilisateur ${user.id}`);
-
     // Récupérer les événements du jour pour cet utilisateur
     const [events] = (await connection.promise().query(
       `

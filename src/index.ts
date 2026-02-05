@@ -95,6 +95,7 @@ app.post("/api/upload", upload.single("image"), async (req, res) => {
 const server = new ApolloServer({
   typeDefs,
   resolvers,
+  cache: "bounded",
   context: ({ req }: { req: { user?: any } }) => {
     return { user: req.user || null };
   },

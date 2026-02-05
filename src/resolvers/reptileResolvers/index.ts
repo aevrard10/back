@@ -28,10 +28,14 @@ export const reptileResolvers = {
 
       return results[0];
     },
-    reptile: async (_parent: any, args: { id: string }) => {
+    reptile: async (_parent: any, args: { id: string }, context: any) => {
+      const userId = context.user?.id;
+      if (!userId) {
+        throw new Error("Non autorisé");
+      }
       const { id } = args; // Récupère l'id du reptile à partir des arguments
-      const query = "SELECT * FROM reptiles WHERE id = ?";
-      const results = (await executeQuery(query, [id])) as RowDataPacket[];
+      const query = "SELECT * FROM reptiles WHERE id = ? AND user_id = ?";
+      const results = (await executeQuery(query, [id, userId])) as RowDataPacket[];
 
       // Si aucun reptile n'est trouvé, renvoyez une erreur
       if (results.length === 0) {
@@ -170,10 +174,16 @@ export const reptileResolvers = {
       };
     },
 
-    deleteReptile: async (_parent: any, args: { id: string }) => {
-      const query = "DELETE FROM reptiles WHERE id = ?";
+    deleteReptile: async (_parent: any, args: { id: string }, context: any) => {
+      const userId = context.user?.id;
+      if (!userId) {
+        throw new Error("Non autorisé");
+      }
+      const query = "DELETE FROM reptiles WHERE id = ? AND user_id = ?";
 
-      const [result] = await connection.promise().query(query, [args.id]);
+      const [result] = await connection
+        .promise()
+        .query(query, [args.id, userId]);
 
       if ((result as OkPacket).affectedRows === 0) {
         throw new Error("Reptile non trouvé");
@@ -181,17 +191,21 @@ export const reptileResolvers = {
 
       return { success: true, message: "Reptile supprimé avec succès." };
     },
-    addNotes: async (_parent: any, args: any) => {
+    addNotes: async (_parent: any, args: any, context: any) => {
+      const userId = context.user?.id;
+      if (!userId) {
+        throw new Error("Non autorisé");
+      }
       const { id, notes } = args;
 
       if (!id || !notes) {
         throw new Error("L'ID du reptile et les notes sont requis.");
       }
 
-      const query = "UPDATE reptiles SET notes = ? WHERE id = ?";
+      const query = "UPDATE reptiles SET notes = ? WHERE id = ? AND user_id = ?";
 
       try {
-        const resultSet = (await executeQuery(query, [notes, id])) as any;
+        const resultSet = (await executeQuery(query, [notes, id, userId])) as any;
 
         if (resultSet.affectedRows === 0) {
           throw new Error(`Aucun reptile trouvé avec l'ID : ${id}`);
@@ -206,17 +220,21 @@ export const reptileResolvers = {
         throw new Error("Erreur lors de l'ajout des notes au reptile.");
       }
     },
-    lastFedUpdate: async (_parent: any, args: any) => {
+    lastFedUpdate: async (_parent: any, args: any, context: any) => {
+      const userId = context.user?.id;
+      if (!userId) {
+        throw new Error("Non autorisé");
+      }
       const { id, last_fed } = args;
 
       if (!id || !last_fed) {
         throw new Error("L'ID du reptile et la date du dernier repas sont requis.");
       }
 
-      const query = "UPDATE reptiles SET last_fed = ? WHERE id = ?";
+      const query = "UPDATE reptiles SET last_fed = ? WHERE id = ? AND user_id = ?";
 
       try {
-        const resultSet = (await executeQuery(query, [last_fed, id])) as any;
+        const resultSet = (await executeQuery(query, [last_fed, id, userId])) as any;
 
         if (resultSet.affectedRows === 0) {
           throw new Error(`Aucun reptile trouvé avec l'ID : ${id}`);

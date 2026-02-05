@@ -12,5 +12,5 @@
     "noEmitOnError": false, // Cela permet à TypeScript de compiler même s'il y a des erreurs de type
     "checkJs": false
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "src/**/*.d.ts"]
 }

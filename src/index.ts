@@ -30,8 +30,29 @@ const upload = multer({ storage: storage });
 // Route d'upload d'image
 app.post("/api/upload", upload.single("image"), async (req, res) => {
   try {
+    if (!req.user?.id) {
+      return res.status(401).json({ error: "Non autorisé" });
+    }
     if (!req.file) {
       return res.status(400).json({ error: "Aucun fichier reçu" });
+    }
+    if (!req.file.mimetype.startsWith("image/")) {
+      return res.status(400).json({ error: "Format de fichier invalide" });
+    }
+
+    const reptileId = req.body.reptileId;
+    if (!reptileId) {
+      return res.status(400).json({ error: "ID du reptile requis" });
+    }
+
+    const [rows] = await connection
+      .promise()
+      .query("SELECT id FROM reptiles WHERE id = ? AND user_id = ?", [
+        reptileId,
+        req.user.id,
+      ]);
+    if ((rows as any[]).length === 0) {
+      return res.status(403).json({ error: "Reptile non autorisé" });
     }
 
     // Upload de l'image sur Cloudinary
@@ -49,7 +70,6 @@ app.post("/api/upload", upload.single("image"), async (req, res) => {
         const imageUrl = result?.secure_url;
 
         // Enregistrer l'URL dans la base de données
-        const reptileId = req.body.reptileId; // ID du reptile que tu veux mettre à jour
         await connection.promise().query(
           `UPDATE reptiles SET image_url = ? WHERE id = ?`,
           [imageUrl, reptileId]

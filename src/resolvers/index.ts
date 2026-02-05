@@ -26,21 +26,19 @@ export const resolvers = {
 };
 
 export const authenticateUser = (req: any, res: any, next: NextFunction) => {
-  const authHeader = req.headers.authorization || req.headers.token;
-  
-  console.log("req.headers", req.headers);
-  console.log("authHeader", authHeader);
+  const rawHeader = req.headers.authorization || req.headers.token;
 
-  if (!authHeader) {
+  if (!rawHeader) {
     req.user = null;
     return next(); // Laisser passer les requêtes publiques
   }
 
-  // Vérifier si le token commence par "Bearer " et l'extraire
-  const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : authHeader;
+  const headerValue = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
+  const token = headerValue.startsWith("Bearer ")
+    ? headerValue.split(" ")[1]
+    : headerValue;
 
   if (!token) {
-    console.error("Jeton manquant dans l'en-tête Authorization");
     req.user = null;
     return next();
   }
@@ -48,8 +46,7 @@ export const authenticateUser = (req: any, res: any, next: NextFunction) => {
   try {
     const decoded = jwt.verify(token, process.env.SECRET_KEY!) as any;
     req.user = decoded; // Ajouter les infos utilisateur à la requête
-  } catch (err) {
-    console.error("Erreur de validation du token :", err);
+  } catch {
     req.user = null; // Ne pas bloquer, juste invalider l'utilisateur
   }
 

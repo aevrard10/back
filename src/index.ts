@@ -2,7 +2,6 @@ import express, { Application } from "express";
 import { ApolloServer } from "apollo-server-express";
 import { typeDefs } from "./shemas";
 import { authenticateUser, resolvers } from "./resolvers";
-import bodyParser from "body-parser";
 import cron from "node-cron";
 // Configuration des middlewares globaux
 import cors from "cors";
@@ -13,7 +12,7 @@ import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import streamifier from "streamifier";
 const app: Application = express();
-app.use(bodyParser.json()); // Parser les requêtes JSON
+app.use(express.json({ limit: "10mb" })); // Parser les requêtes JSON
 app.use(cors()); // Autoriser les requêtes cross-origin
 app.use(authenticateUser);
 

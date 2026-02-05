@@ -6,6 +6,7 @@ import { authResolvers } from "./authResolvers";
 import { notificationsResolvers } from "./notificationsResolvers";
 import { measurementResolvers } from "./measurementResolvers";
 import { foodResolvers } from "./foodResolvers";
+import { dashboardResolvers } from "./dashboardResolvers";
 dotenv.config();
 
 export const resolvers = {
@@ -15,6 +16,7 @@ export const resolvers = {
     ...notificationsResolvers.Query,
     ...measurementResolvers.Query,
     ...foodResolvers.Query,
+    ...dashboardResolvers.Query,
   },
   Mutation: {
     ...authResolvers.Mutation,

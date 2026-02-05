@@ -147,6 +147,13 @@ type FoodStockHistory {
   date: String!
 }
 
+type DashboardSummary {
+  reptiles_count: Int!
+  events_today: Int!
+  unread_notifications: Int!
+  upcoming_events: [ReptileEvent!]!
+}
+
 input UpdateFoodStockInput {
   food_id: ID!
   quantity_change: Int!
@@ -217,6 +224,7 @@ type Query {
   currentUser: User
     foodStock: [FoodStock!]!
   foodStockHistory: [FoodStockHistory!]!
+  dashboardSummary: DashboardSummary!
 }
 
 `;

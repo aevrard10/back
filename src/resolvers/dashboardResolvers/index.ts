@@ -1,6 +1,15 @@
 import { RowDataPacket } from "mysql2";
 import connection from "../../db";
 
+type CountRow = RowDataPacket & { count: number };
+type UpcomingEventRow = RowDataPacket & {
+  id: number;
+  event_date: string;
+  event_name: string;
+  event_time: string;
+  notes: string | null;
+};
+
 export const dashboardResolvers = {
   Query: {
     dashboardSummary: async (_parent: any, _args: any, context: any) => {
@@ -14,14 +23,14 @@ export const dashboardResolvers = {
         .promise()
         .query("SELECT COUNT(*) AS count FROM reptiles WHERE user_id = ?", [
           userId,
-        ])) as RowDataPacket[][];
+        ])) as CountRow[][];
 
       const [[eventsToday]] = (await connection
         .promise()
         .query(
           "SELECT COUNT(*) AS count FROM reptile_events WHERE user_id = ? AND DATE(event_date) = CURDATE()",
           [userId]
-        )) as RowDataPacket[][];
+        )) as CountRow[][];
 
       const [upcomingEvents] = (await connection
         .promise()
@@ -34,14 +43,14 @@ export const dashboardResolvers = {
           LIMIT 3
         `,
           [userId]
-        )) as RowDataPacket[];
+        )) as [UpcomingEventRow[], unknown];
 
       const [[unreadNotifications]] = (await connection
         .promise()
         .query(
           "SELECT COUNT(*) AS count FROM notifications WHERE user_id = ? AND `read` = FALSE",
           [userId]
-        )) as RowDataPacket[][];
+        )) as CountRow[][];
 
       return {
         reptiles_count: reptilesCount?.count ?? 0,

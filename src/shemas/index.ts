@@ -244,6 +244,20 @@ type DashboardSummary {
   upcoming_events: [ReptileEvent!]!
 }
 
+# Govee
+type GoveeDevice {
+  device: String!
+  model: String!
+  deviceName: String
+}
+
+type GoveeReading {
+  temperature: Float
+  humidity: Float
+  battery: Int
+  retrieved_at: String!
+}
+
 input UpdateFoodStockInput {
   food_id: ID!
   quantity_change: Int!
@@ -328,6 +342,8 @@ type Query {
     foodStock: [FoodStock!]!
   foodStockHistory: [FoodStockHistory!]!
   dashboardSummary: DashboardSummary!
+  goveeDevices(apiKey: String!): [GoveeDevice!]!
+  goveeDeviceState(apiKey: String!, device: String!, model: String!): GoveeReading!
 }
 
 type ReptilePhoto {

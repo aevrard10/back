@@ -2,6 +2,158 @@ import { OkPacket, RowDataPacket } from "mysql2";
 import connection from "../../db";
 import { executeQuery } from "../../db/utils/dbUtils";
 
+type ReptileEventRow = RowDataPacket & {
+  id: number;
+  event_date: string;
+  event_name: string;
+  event_time: string;
+  notes?: string | null;
+  recurrence_type?: "NONE" | "DAILY" | "WEEKLY" | "MONTHLY" | null;
+  recurrence_interval?: number | null;
+  recurrence_until?: string | null;
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const parseDateOnly = (value?: string | null) => {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const matchDash = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (matchDash) {
+    const [, year, month, day] = matchDash;
+    return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  }
+
+  const matchSlash = trimmed.match(/^(\d{4})\/(\d{2})\/(\d{2})/);
+  if (matchSlash) {
+    const [, year, month, day] = matchSlash;
+    return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  }
+
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return new Date(
+    Date.UTC(
+      parsed.getUTCFullYear(),
+      parsed.getUTCMonth(),
+      parsed.getUTCDate(),
+    ),
+  );
+};
+
+const formatDateOnly = (date: Date) => {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const addDaysUtc = (date: Date, days: number) =>
+  new Date(date.getTime() + days * DAY_MS);
+
+const daysInMonthUtc = (year: number, monthIndex: number) =>
+  new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
+
+const addMonthsUtc = (base: Date, months: number, baseDay: number) => {
+  const startYear = base.getUTCFullYear();
+  const startMonth = base.getUTCMonth();
+  const targetMonthIndex = startMonth + months;
+  const targetYear = startYear + Math.floor(targetMonthIndex / 12);
+  const modMonth = ((targetMonthIndex % 12) + 12) % 12;
+  const maxDay = daysInMonthUtc(targetYear, modMonth);
+  const day = Math.min(baseDay, maxDay);
+  return new Date(Date.UTC(targetYear, modMonth, day));
+};
+
+const expandRecurringEvents = (rows: ReptileEventRow[]) => {
+  const today = new Date();
+  const todayUtc = new Date(
+    Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
+  );
+  const windowStart = addDaysUtc(todayUtc, -30);
+  const windowEnd = addDaysUtc(todayUtc, 365);
+  const maxIterations = 5000;
+
+  return rows.flatMap((row) => {
+    const baseDate = parseDateOnly(row.event_date);
+    if (!baseDate) return [];
+
+    const recurrenceType = row.recurrence_type ?? "NONE";
+    const interval = Math.max(1, Number(row.recurrence_interval ?? 1));
+    const untilDate = parseDateOnly(row.recurrence_until);
+
+    if (recurrenceType === "NONE") {
+      return [
+        {
+          ...row,
+          event_date: formatDateOnly(baseDate),
+        },
+      ];
+    }
+
+    const occurrences: ReptileEventRow[] = [];
+    let index = 0;
+    const baseDay = baseDate.getUTCDate();
+
+    if (recurrenceType === "DAILY" || recurrenceType === "WEEKLY") {
+      const step = recurrenceType === "DAILY" ? interval : interval * 7;
+      const diffDays = Math.floor(
+        (windowStart.getTime() - baseDate.getTime()) / DAY_MS,
+      );
+      index = diffDays > 0 ? Math.floor(diffDays / step) : 0;
+      let current = addDaysUtc(baseDate, index * step);
+
+      while (current < windowStart) {
+        index += 1;
+        current = addDaysUtc(baseDate, index * step);
+      }
+
+      let iterations = 0;
+      while (current <= windowEnd && iterations < maxIterations) {
+        if (untilDate && current > untilDate) break;
+        occurrences.push({
+          ...row,
+          event_date: formatDateOnly(current),
+        });
+        index += 1;
+        current = addDaysUtc(baseDate, index * step);
+        iterations += 1;
+      }
+      return occurrences;
+    }
+
+    if (recurrenceType === "MONTHLY") {
+      const monthDiff =
+        (windowStart.getUTCFullYear() - baseDate.getUTCFullYear()) * 12 +
+        (windowStart.getUTCMonth() - baseDate.getUTCMonth());
+      index = monthDiff > 0 ? Math.floor(monthDiff / interval) : 0;
+      let current = addMonthsUtc(baseDate, index * interval, baseDay);
+
+      while (current < windowStart) {
+        index += 1;
+        current = addMonthsUtc(baseDate, index * interval, baseDay);
+      }
+
+      let iterations = 0;
+      while (current <= windowEnd && iterations < maxIterations) {
+        if (untilDate && current > untilDate) break;
+        occurrences.push({
+          ...row,
+          event_date: formatDateOnly(current),
+        });
+        index += 1;
+        current = addMonthsUtc(baseDate, index * interval, baseDay);
+        iterations += 1;
+      }
+      return occurrences;
+    }
+
+    return [];
+  });
+};
+
 export const reptileResolvers = {
   Query: {
     reptileEvent: async (_parent: any, _args: any, context: any) => {
@@ -14,7 +166,8 @@ export const reptileResolvers = {
       const query = "SELECT * FROM reptile_events WHERE user_id = ?";
       const results = await connection.promise().query(query, [userId]);
 
-      return results[0];
+      const rows = results[0] as ReptileEventRow[];
+      return expandRecurringEvents(rows);
     },
     reptileGenetics: async (
       _parent: any,
@@ -220,6 +373,10 @@ export const reptileResolvers = {
         recurrence_interval = 1,
         recurrence_until = null,
       } = args.input;
+
+      if (!event_date) {
+        throw new Error("La date de l'événement est requise.");
+      }
 
       const query =
         "INSERT INTO reptile_events (event_name, event_date, event_time, notes, user_id, recurrence_type, recurrence_interval, recurrence_until) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";

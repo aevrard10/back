@@ -4,10 +4,17 @@ import { OkPacket, RowDataPacket } from "mysql2";
 import dotenv from "dotenv";
 import connection from "../../db";
 import { executeQuery } from "../../db/utils/dbUtils";
+import mailjet from "node-mailjet";
 
 dotenv.config();
 
 const SECRET_KEY = process.env.SECRET_KEY!;
+const mailer = process.env.MAILJET_API_KEY && process.env.MAILJET_API_SECRET
+  ? mailjet.apiConnect(
+      process.env.MAILJET_API_KEY,
+      process.env.MAILJET_API_SECRET,
+    )
+  : null;
 
 export const authResolvers = {
   Query: {
@@ -169,12 +176,42 @@ export const authResolvers = {
           { expiresIn: "30m" }
         );
 
-        // En production, on enverrait l'email ici. On renvoie le token pour l'instant.
+        const resetLink = `${process.env.FRONT_RESET_URL}?token=${resetToken}`;
+
+        if (mailer && process.env.MAILJET_FROM) {
+          try {
+            await mailer.post("send", { version: "v3.1" }).request({
+              Messages: [
+                {
+                  From: {
+                    Email: process.env.MAILJET_FROM,
+                    Name: "ReptiTrack",
+                  },
+                  To: [{ Email: email }],
+                  Subject: "Réinitialisation de mot de passe",
+                  HTMLPart: `
+                    <div style="font-family:Arial,sans-serif;max-width:520px;padding:16px;border-radius:12px;background:#f6f9fb;color:#0d1b2a;">
+                      <h2 style="margin:0 0 12px;font-size:20px;color:#0b6b4c;">Réinitialiser ton mot de passe</h2>
+                      <p style="margin:8px 0;">Salut ${user[0].username || ""},</p>
+                      <p style="margin:8px 0;">Tu as demandé à réinitialiser ton mot de passe ReptiTrack. Ce lien est valable 30 minutes :</p>
+                      <p style="margin:12px 0;"><a href="${resetLink}" style="display:inline-block;padding:10px 14px;background:#0b6b4c;color:#fff;text-decoration:none;border-radius:8px;">Réinitialiser</a></p>
+                      <p style="margin:8px 0;word-break:break-all;">Si le bouton ne fonctionne pas, copie-colle ce lien :<br>${resetLink}</p>
+                      <p style="margin:16px 0 0;font-size:12px;color:#6c7a89;">Si tu n'es pas à l'origine de cette demande, ignore cet email.</p>
+                    </div>
+                  `,
+                },
+              ],
+            });
+          } catch (mailErr) {
+            console.error("Mailjet error", mailErr);
+          }
+        }
+
         return {
           success: true,
           message:
-            "Lien de réinitialisation généré (valide 30 minutes).",
-          resetToken,
+            "Si un compte existe, un email vient d’être envoyé.",
+          resetToken: null as string | null, // on ne renvoie plus le token en prod
         };
       } catch (error) {
         console.error("Erreur requestPasswordReset :", error);

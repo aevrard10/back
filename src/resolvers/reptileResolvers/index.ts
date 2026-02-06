@@ -19,8 +19,27 @@ type ReptileEventExclusionRow = RowDataPacket & {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const parseDateOnly = (value?: string | null) => {
+const parseDateOnly = (value?: string | Date | number | null) => {
   if (!value) return null;
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return null;
+    return new Date(
+      Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()),
+    );
+  }
+
+  if (typeof value === "number") {
+    const parsedFromNumber = new Date(value);
+    if (Number.isNaN(parsedFromNumber.getTime())) return null;
+    return new Date(
+      Date.UTC(
+        parsedFromNumber.getUTCFullYear(),
+        parsedFromNumber.getUTCMonth(),
+        parsedFromNumber.getUTCDate(),
+      ),
+    );
+  }
+
   const trimmed = value.trim();
   if (!trimmed) return null;
 

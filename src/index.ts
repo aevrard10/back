@@ -42,7 +42,8 @@ const upload = multer({ storage: storage });
 // Route d'upload d'image
 app.post("/api/upload", upload.single("image"), async (req, res) => {
   try {
-    if (!req.user?.id) {
+    const user = (req as any).user;
+    if (!user?.id) {
       return res.status(401).json({ error: "Non autorisé" });
     }
     if (!req.file) {
@@ -62,7 +63,7 @@ app.post("/api/upload", upload.single("image"), async (req, res) => {
       .promise()
       .query("SELECT id FROM reptiles WHERE id = ? AND user_id = ?", [
         reptileId,
-        req.user.id,
+        user.id,
       ]);
     if ((rows as any[]).length === 0) {
       return res.status(403).json({ error: "Reptile non autorisé" });
@@ -123,7 +124,7 @@ const server = new ApolloServer({
   typeDefs,
   resolvers,
   cache: "bounded",
-  context: ({ req }: { req: { user?: any } }) => {
+  context: ({ req }: { req: any }) => {
     return { user: req.user || null };
   },
 });

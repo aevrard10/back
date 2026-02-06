@@ -174,6 +174,16 @@ input AddReptileEventInput {
   recurrence_until: String
 }
 
+input UpdateReptileEventInput {
+  event_name: String!
+  event_date: String!
+  event_time: String!
+  notes: String
+  recurrence_type: RecurrenceType
+  recurrence_interval: Int
+  recurrence_until: String
+}
+
 type DeleteReptileResponse {
   success: Boolean!
   message: String!
@@ -279,6 +289,7 @@ type ReptileUpdateResponse {
 type Mutation {
   addReptile(input: AddReptileInput!): Reptile
   addReptileEvent(input: AddReptileEventInput!): ReptileEvent
+  updateReptileEvent(id: ID!, input: UpdateReptileEventInput!): ReptileEvent
   deleteReptileEvent(id: ID!): MutationResponse!
   excludeReptileEventOccurrence(id: ID!, date: String!): MutationResponse!
   deleteReptilePhoto(id: ID!): MutationResponse!

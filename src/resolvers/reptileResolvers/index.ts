@@ -475,6 +475,82 @@ export const reptileResolvers = {
         recurrence_until,
       };
     },
+    updateReptileEvent: async (
+      _parent: any,
+      args: { id: string; input: any },
+      context: any
+    ) => {
+      const userId = context.user?.id;
+
+      if (!userId) {
+        throw new Error("Non autorisé");
+      }
+
+      const { id, input } = args;
+      if (!id) {
+        throw new Error("L'identifiant de l'événement est requis.");
+      }
+
+      const {
+        event_name,
+        event_date,
+        event_time,
+        notes,
+        recurrence_type = "NONE",
+        recurrence_interval = 1,
+        recurrence_until = null,
+      } = input ?? {};
+
+      if (!event_date) {
+        throw new Error("La date de l'événement est requise.");
+      }
+
+      const [events] = (await connection.promise().query(
+        "SELECT id FROM reptile_events WHERE id = ? AND user_id = ?",
+        [id, userId]
+      )) as RowDataPacket[];
+
+      if (events.length === 0) {
+        throw new Error("Événement non trouvé ou non autorisé.");
+      }
+
+      await connection.promise().query(
+        `
+        UPDATE reptile_events
+        SET event_name = ?,
+            event_date = ?,
+            event_time = ?,
+            notes = ?,
+            recurrence_type = ?,
+            recurrence_interval = ?,
+            recurrence_until = ?
+        WHERE id = ? AND user_id = ?
+      `,
+        [
+          event_name,
+          event_date,
+          event_time,
+          notes,
+          recurrence_type,
+          recurrence_interval,
+          recurrence_until,
+          id,
+          userId,
+        ]
+      );
+
+      return {
+        id,
+        event_name,
+        event_date,
+        event_time,
+        notes,
+        user_id: userId,
+        recurrence_type,
+        recurrence_interval,
+        recurrence_until,
+      };
+    },
     upsertReptileGenetics: async (
       _parent: any,
       args: { input: any },

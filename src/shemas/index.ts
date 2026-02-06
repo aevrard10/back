@@ -16,6 +16,17 @@ type AuthPayload {
   user: User
 }
 
+type PasswordResetPayload {
+  success: Boolean!
+  message: String!
+  resetToken: String
+}
+
+input ResetPasswordInput {
+  token: String!
+  newPassword: String!
+}
+
 input RegisterInput {
   username: String!
   email: String!
@@ -216,6 +227,17 @@ enum RecurrenceType {
   WEEKLY
   MONTHLY
 }
+
+enum ExportFormat {
+  CSV
+  PDF
+}
+
+type ReptileExport {
+  filename: String!
+  mime: String!
+  base64: String!
+}
 type LastFedUpdateResponse {
   success: Boolean!
   message: String!
@@ -336,6 +358,8 @@ type Mutation {
   register(input: RegisterInput!): AuthPayload!
   login(input: LoginInput!): AuthPayload!
   logout: LogoutResponse!
+  requestPasswordReset(email: String!): PasswordResetPayload!
+  resetPassword(input: ResetPasswordInput!): AuthPayload!
   addMeasurement(input: AddMeasurementInput!): Measurement
   markNotificationAsRead(id: Int!): Notification!
   markAllNotificationsAsRead: [Notification!]!
@@ -365,6 +389,7 @@ type Query {
   foodStockForecast(days: Int!): [FoodStockForecast!]!
   goveeDevices(apiKey: String!): [GoveeDevice!]!
   goveeDeviceState(apiKey: String!, device: String!, model: String!): GoveeReading!
+  exportReptile(id: ID!, format: ExportFormat!): ReptileExport!
 }
 
 type ReptilePhoto {

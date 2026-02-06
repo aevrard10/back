@@ -8,6 +8,7 @@ import { measurementResolvers } from "./measurementResolvers";
 import { foodResolvers } from "./foodResolvers";
 import { dashboardResolvers } from "./dashboardResolvers";
 import { sensorResolvers } from "./sensorResolvers";
+import { exportResolvers } from "./reptileResolvers/exportResolvers";
 dotenv.config();
 
 export const resolvers = {
@@ -19,6 +20,7 @@ export const resolvers = {
     ...foodResolvers.Query,
     ...dashboardResolvers.Query,
     ...sensorResolvers.Query,
+    ...exportResolvers.Query,
   },
   Mutation: {
     ...authResolvers.Mutation,

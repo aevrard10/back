@@ -1,6 +1,7 @@
 import { OkPacket, RowDataPacket } from "mysql2";
 import connection from "../../db";
 import { executeQuery } from "../../db/utils/dbUtils";
+export { exportResolvers } from "./exportResolvers";
 
 type ReptileEventRow = RowDataPacket & {
   id: number;

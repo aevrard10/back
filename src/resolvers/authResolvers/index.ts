@@ -134,5 +134,91 @@ export const authResolvers = {
       }
       return { success: true, message: "Déconnexion réussie." };
     },
+
+    requestPasswordReset: async (
+      _parent: any,
+      args: { email: string }
+    ) => {
+      const { email } = args;
+      if (!email) {
+        return {
+          success: false,
+          message: "Email requis",
+          resetToken: null,
+        };
+      }
+      try {
+        const [user] = (await connection
+          .promise()
+          .query("SELECT id, email, username FROM users WHERE email = ?", [
+            email,
+          ])) as RowDataPacket[];
+
+        // Réponse générique même si l'email n'existe pas
+        if (user.length === 0) {
+          return {
+            success: true,
+            message: "Si un compte existe, un lien de réinitialisation a été généré.",
+            resetToken: null,
+          };
+        }
+
+        const resetToken = jwt.sign(
+          { id: user[0].id, email: user[0].email, purpose: "reset" },
+          SECRET_KEY,
+          { expiresIn: "30m" }
+        );
+
+        // En production, on enverrait l'email ici. On renvoie le token pour l'instant.
+        return {
+          success: true,
+          message:
+            "Lien de réinitialisation généré (valide 30 minutes).",
+          resetToken,
+        };
+      } catch (error) {
+        console.error("Erreur requestPasswordReset :", error);
+        throw new Error("Impossible de générer le lien de réinitialisation.");
+      }
+    },
+
+    resetPassword: async (
+      _parent: any,
+      args: { input: { token: string; newPassword: string } }
+    ) => {
+      const { token, newPassword } = args.input;
+      if (!token || !newPassword) {
+        throw new Error("Token et nouveau mot de passe requis.");
+      }
+      try {
+        const decoded = jwt.verify(token, SECRET_KEY) as any;
+        if (decoded.purpose !== "reset") {
+          throw new Error("Token invalide.");
+        }
+        const hashed = await bcrypt.hash(newPassword, 10);
+        await connection
+          .promise()
+          .query("UPDATE users SET password = ? WHERE id = ?", [
+            hashed,
+            decoded.id,
+          ]);
+
+        const loginToken = jwt.sign(
+          { id: decoded.id, email: decoded.email },
+          SECRET_KEY,
+          { expiresIn: "30d" }
+        );
+
+        return {
+          success: true,
+          message: "Mot de passe mis à jour",
+          token: loginToken,
+          user: { id: decoded.id, email: decoded.email, username: decoded.username },
+        };
+      } catch (error) {
+        console.error("Erreur resetPassword :", error);
+        throw new Error("Lien expiré ou invalide.");
+      }
+    },
   },
 };

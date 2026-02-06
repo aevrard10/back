@@ -344,6 +344,128 @@ export const reptileResolvers = {
 
       return rows;
     },
+    healthAlerts: async (_parent: any, _args: any, context: any) => {
+      const userId = context.user?.id;
+      if (!userId) throw new Error("Non autorisé");
+
+      const reptiles = (await executeQuery(
+        "SELECT id, name FROM reptiles WHERE user_id = ?",
+        [userId]
+      )) as RowDataPacket[];
+      if (reptiles.length === 0) return [];
+
+      const reptileIds = reptiles.map((r) => r.id);
+      const placeholders = reptileIds.map(() => "?").join(",");
+
+      const measurements = (await executeQuery(
+        `SELECT reptile_id, weight, date FROM measurements WHERE reptile_id IN (${placeholders}) ORDER BY date DESC`,
+        reptileIds
+      )) as RowDataPacket[];
+
+      const feedings = (await executeQuery(
+        `SELECT reptile_id, fed_at FROM reptile_feedings WHERE reptile_id IN (${placeholders}) ORDER BY fed_at DESC`,
+        reptileIds
+      )) as RowDataPacket[];
+
+      const sheds = (await executeQuery(
+        `SELECT reptile_id, shed_date FROM reptile_sheds WHERE reptile_id IN (${placeholders}) ORDER BY shed_date DESC`,
+        reptileIds
+      )) as RowDataPacket[];
+
+      const now = new Date();
+      const DAY_MS = 86400000;
+      const WEIGHT_DROP_THRESHOLD = 10; // %
+      const NO_FEED_DAYS = 10;
+      const MOLT_DELAY_DEFAULT = 60;
+
+      const byReptile = (arr: any[], key: string) =>
+        arr.reduce<Record<number, any[]>>((acc, item) => {
+          const id = Number(item[key]);
+          if (!acc[id]) acc[id] = [];
+          acc[id].push(item);
+          return acc;
+        }, {});
+
+      const mBy = byReptile(measurements, "reptile_id");
+      const fBy = byReptile(feedings, "reptile_id");
+      const sBy = byReptile(sheds, "reptile_id");
+
+      return reptiles.map((r) => {
+        const alerts: string[] = [];
+        let weightDeltaPct: number | null = null;
+        let daysSinceFeed: number | null = null;
+        let daysSinceShed: number | null = null;
+
+        const mList = mBy[r.id] || [];
+        if (mList.length >= 2) {
+          const latest = mList[0];
+          const latestDate = new Date(latest.date);
+          const targetDate = new Date(latestDate.getTime() - 30 * DAY_MS);
+          const older = mList.find(
+            (m) => new Date(m.date).getTime() <= targetDate.getTime()
+          );
+          if (older) {
+            const delta = Number(latest.weight) - Number(older.weight);
+            if (Number(older.weight) > 0) {
+              weightDeltaPct = (delta / Number(older.weight)) * 100;
+              if (weightDeltaPct <= -WEIGHT_DROP_THRESHOLD) {
+                alerts.push(`Poids -${Math.abs(weightDeltaPct).toFixed(1)}%`);
+              }
+            }
+          }
+        }
+
+        const fList = fBy[r.id] || [];
+        if (fList.length > 0) {
+          const lastFeed = new Date(fList[0].fed_at);
+          daysSinceFeed = Math.floor(
+            (now.getTime() - lastFeed.getTime()) / DAY_MS
+          );
+          if (daysSinceFeed > NO_FEED_DAYS) {
+            alerts.push(`Pas de repas depuis ${daysSinceFeed} j`);
+          }
+        }
+
+        const sList = sBy[r.id] || [];
+        if (sList.length > 0) {
+          const lastShed = new Date(sList[0].shed_date);
+          daysSinceShed = Math.floor(
+            (now.getTime() - lastShed.getTime()) / DAY_MS
+          );
+          let expected = MOLT_DELAY_DEFAULT;
+          if (sList.length >= 2) {
+            const intervals: number[] = [];
+            for (let i = 0; i < sList.length - 1; i++) {
+              const a = new Date(sList[i].shed_date);
+              const b = new Date(sList[i + 1].shed_date);
+              intervals.push(
+                Math.abs(
+                  Math.floor((a.getTime() - b.getTime()) / DAY_MS)
+                )
+              );
+            }
+            intervals.sort((a, b) => a - b);
+            const mid = Math.floor(intervals.length / 2);
+            expected =
+              intervals.length % 2 === 0
+                ? Math.round((intervals[mid - 1] + intervals[mid]) / 2)
+                : intervals[mid];
+          }
+          if (daysSinceShed > expected) {
+            alerts.push(`Mue en retard (${daysSinceShed} j)`);
+          }
+        }
+
+        return {
+          reptile_id: r.id,
+          name: r.name,
+          weight_delta_pct: weightDeltaPct,
+          days_since_feed: daysSinceFeed,
+          days_since_shed: daysSinceShed,
+          alerts,
+        };
+      });
+    },
     reptilePhotos: async (
       _parent: any,
       args: { reptile_id: string },

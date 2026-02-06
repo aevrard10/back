@@ -15,6 +15,52 @@ export const foodResolvers = {
       return await executeQuery(query, [userId]);
     },
 
+    // Prévision de stock
+    foodStockForecast: async (_parent: any, args: { days: number }, context: any) => {
+      const userId = context.user?.id;
+      if (!userId) throw new Error("Non autorisé");
+      const days = Math.max(1, Math.min(Number(args.days) || 30, 60));
+
+      const stock = (await executeQuery(
+        `SELECT id, name, quantity, unit FROM food_stock`,
+        []
+      )) as RowDataPacket[];
+
+      if (stock.length === 0) return [];
+
+      const feedings = (await executeQuery(
+        `
+        SELECT food_id, quantity, fed_at
+        FROM reptile_feedings
+        WHERE fed_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+          AND food_id IS NOT NULL
+        `
+      , [])) as RowDataPacket[];
+
+      const consumptionMap = new Map<number, number>();
+      feedings.forEach((f) => {
+        const id = Number(f.food_id);
+        if (!consumptionMap.has(id)) consumptionMap.set(id, 0);
+        consumptionMap.set(id, consumptionMap.get(id)! + Number(f.quantity || 0));
+      });
+
+      return stock.map((item) => {
+        const sum30 = consumptionMap.get(Number(item.id)) || 0;
+        const daily = sum30 / 30;
+        const projected = item.quantity - daily * days;
+        const projected30 = item.quantity - daily * 30;
+        return {
+          food_id: item.id,
+          name: item.name,
+          unit: item.unit,
+          quantity: item.quantity,
+          daily_consumption: Number(daily.toFixed(2)),
+          projected_remaining_14: Number((item.quantity - daily * 14).toFixed(2)),
+          projected_remaining_30: Number(projected30.toFixed(2)),
+        };
+      });
+    },
+
     // Récupérer l'historique des changements de stock
     foodStockHistory: async (_parent: any, _args: any, context: any) => {
       const userId = context.user?.id;

@@ -244,6 +244,25 @@ type DashboardSummary {
   upcoming_events: [ReptileEvent!]!
 }
 
+type HealthAlert {
+  reptile_id: ID!
+  name: String!
+  weight_delta_pct: Float
+  days_since_feed: Int
+  days_since_shed: Int
+  alerts: [String!]!
+}
+
+type FoodStockForecast {
+  food_id: ID!
+  name: String!
+  unit: String!
+  quantity: Int!
+  daily_consumption: Float
+  projected_remaining_14: Float
+  projected_remaining_30: Float
+}
+
 # Govee
 type GoveeDevice {
   device: String!
@@ -342,6 +361,8 @@ type Query {
     foodStock: [FoodStock!]!
   foodStockHistory: [FoodStockHistory!]!
   dashboardSummary: DashboardSummary!
+  healthAlerts: [HealthAlert!]!
+  foodStockForecast(days: Int!): [FoodStockForecast!]!
   goveeDevices(apiKey: String!): [GoveeDevice!]!
   goveeDeviceState(apiKey: String!, device: String!, model: String!): GoveeReading!
 }

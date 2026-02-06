@@ -51,7 +51,7 @@ const exportCsv = (data: any) => {
   };
 };
 
-const exportPdf = (data: any) => {
+const exportPdf = async (data: any) => {
   const doc = new PDFDocument({ margin: 40 });
   const chunks: Buffer[] = [];
   doc.on("data", (c) => chunks.push(c as Buffer));
@@ -82,7 +82,9 @@ const exportPdf = (data: any) => {
 
   doc.fontSize(14).text(`Repas (5 derniers)`, { underline: true });
   data.feedings.slice(0, 5).forEach((f: any) => {
-    doc.fontSize(12).text(`${f.fed_at}: ${f.food_name || "Repas"} (${f.quantity ?? ""} ${f.unit ?? ""})`);
+    doc
+      .fontSize(12)
+      .text(`${f.fed_at}: ${f.food_name || "Repas"} (${f.quantity ?? ""} ${f.unit ?? ""})`);
   });
   doc.moveDown();
 
@@ -92,6 +94,8 @@ const exportPdf = (data: any) => {
   });
 
   doc.end();
+
+  await new Promise<void>((resolve) => doc.on("end", () => resolve()));
   const buffer = Buffer.concat(chunks);
   const base64 = buffer.toString("base64");
   return {
@@ -153,7 +157,7 @@ export const exportResolvers = {
         return exportCsv(payload);
       }
 
-      return exportPdf(payload);
+      return await exportPdf(payload);
     },
   },
 };

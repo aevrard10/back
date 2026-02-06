@@ -60,6 +60,73 @@ type Reptile {
   image_url: String
 }
 
+type ReptileGenetics {
+  id: ID!
+  reptile_id: ID!
+  morph: String
+  mutations: String
+  hets: String
+  traits: String
+  lineage: String
+  breeder: String
+  hatch_date: String
+  sire_name: String
+  dam_name: String
+  notes: String
+  created_at: String!
+  updated_at: String!
+}
+
+input ReptileGeneticsInput {
+  reptile_id: ID!
+  morph: String
+  mutations: String
+  hets: String
+  traits: String
+  lineage: String
+  breeder: String
+  hatch_date: String
+  sire_name: String
+  dam_name: String
+  notes: String
+}
+
+type ReptileFeeding {
+  id: ID!
+  reptile_id: ID!
+  food_id: ID
+  food_name: String
+  quantity: Float
+  unit: String
+  fed_at: String!
+  notes: String
+  created_at: String!
+}
+
+input AddReptileFeedingInput {
+  reptile_id: ID!
+  food_id: ID
+  food_name: String
+  quantity: Float
+  unit: String
+  fed_at: String!
+  notes: String
+}
+
+type ReptileShed {
+  id: ID!
+  reptile_id: ID!
+  shed_date: String!
+  notes: String
+  created_at: String!
+}
+
+input AddReptileShedInput {
+  reptile_id: ID!
+  shed_date: String!
+  notes: String
+}
+
 input AddMeasurementInput {
   reptile_id: ID!
   date: String!
@@ -102,6 +169,9 @@ input AddReptileEventInput {
   event_date: String!
   event_time: String!
   notes: String
+  recurrence_type: RecurrenceType
+  recurrence_interval: Int
+  recurrence_until: String
 }
 
 type DeleteReptileResponse {
@@ -125,6 +195,16 @@ type ReptileEvent {
   event_name: String!
   event_time: String!
   notes: String
+  recurrence_type: RecurrenceType
+  recurrence_interval: Int
+  recurrence_until: String
+}
+
+enum RecurrenceType {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
 }
 type LastFedUpdateResponse {
   success: Boolean!
@@ -199,6 +279,13 @@ type ReptileUpdateResponse {
 type Mutation {
   addReptile(input: AddReptileInput!): Reptile
   addReptileEvent(input: AddReptileEventInput!): ReptileEvent
+  deleteReptileEvent(id: ID!): MutationResponse!
+  deleteReptilePhoto(id: ID!): MutationResponse!
+  upsertReptileGenetics(input: ReptileGeneticsInput!): ReptileGenetics!
+  addReptileFeeding(input: AddReptileFeedingInput!): ReptileFeeding!
+  deleteReptileFeeding(id: ID!): MutationResponse!
+  addReptileShed(input: AddReptileShedInput!): ReptileShed!
+  deleteReptileShed(id: ID!): MutationResponse!
   addNotes(id: ID!, notes: String!): AddNotesResponse!
   deleteReptile(id: ID!): DeleteReptileResponse!
   register(input: RegisterInput!): AuthPayload!
@@ -206,7 +293,7 @@ type Mutation {
   logout: LogoutResponse!
   addMeasurement(input: AddMeasurementInput!): Measurement
   markNotificationAsRead(id: Int!): Notification!
-  markAllNotificationsAsRead(user_id: Int!): [Notification!]!
+  markAllNotificationsAsRead: [Notification!]!
   lastFedUpdate(id: ID!, last_fed: String!): LastFedUpdateResponse
     updateFoodStock(input: UpdateFoodStockInput!): MutationResponse!
   addFoodStock(input: AddFoodStockInput!): FoodStock!
@@ -217,14 +304,25 @@ type Mutation {
 type Query {
   measurements(reptile_id: ID!): [Measurement!]!
   getNotifications: [Notification!]!
-  getUnreadNotificationsCount(user_id: Int!): Int!
+  getUnreadNotificationsCount: Int!
   reptile(id: ID!): Reptile
   reptiles: [Reptile]
   reptileEvent: [ReptileEvent]
+  reptilePhotos(reptile_id: ID!): [ReptilePhoto!]!
+  reptileGenetics(reptile_id: ID!): ReptileGenetics
+  reptileFeedings(reptile_id: ID!): [ReptileFeeding!]!
+  reptileSheds(reptile_id: ID!): [ReptileShed!]!
   currentUser: User
     foodStock: [FoodStock!]!
   foodStockHistory: [FoodStockHistory!]!
   dashboardSummary: DashboardSummary!
+}
+
+type ReptilePhoto {
+  id: ID!
+  reptile_id: ID!
+  url: String!
+  created_at: String!
 }
 
 `;

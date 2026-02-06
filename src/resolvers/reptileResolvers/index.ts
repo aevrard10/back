@@ -16,6 +16,146 @@ export const reptileResolvers = {
 
       return results[0];
     },
+    reptileGenetics: async (
+      _parent: any,
+      args: { reptile_id: string },
+      context: any
+    ) => {
+      const userId = context.user?.id;
+      if (!userId) {
+        throw new Error("Non autorisé");
+      }
+
+      const { reptile_id } = args;
+      if (!reptile_id) {
+        throw new Error("L'identifiant du reptile est requis.");
+      }
+
+      const [reptiles] = (await connection
+        .promise()
+        .query("SELECT id FROM reptiles WHERE id = ? AND user_id = ?", [
+          reptile_id,
+          userId,
+        ])) as RowDataPacket[];
+
+      if (reptiles.length === 0) {
+        throw new Error("Reptile non trouvé ou non autorisé");
+      }
+
+      const [rows] = (await connection.promise().query(
+        `
+        SELECT * FROM reptile_genetics WHERE reptile_id = ?
+      `,
+        [reptile_id]
+      )) as RowDataPacket[];
+
+      return rows[0] ?? null;
+    },
+    reptileFeedings: async (
+      _parent: any,
+      args: { reptile_id: string },
+      context: any
+    ) => {
+      const userId = context.user?.id;
+      if (!userId) {
+        throw new Error("Non autorisé");
+      }
+
+      const { reptile_id } = args;
+      if (!reptile_id) {
+        throw new Error("L'identifiant du reptile est requis.");
+      }
+
+      const [reptiles] = (await connection
+        .promise()
+        .query("SELECT id FROM reptiles WHERE id = ? AND user_id = ?", [
+          reptile_id,
+          userId,
+        ])) as RowDataPacket[];
+
+      if (reptiles.length === 0) {
+        throw new Error("Reptile non trouvé ou non autorisé");
+      }
+
+      const [rows] = (await connection.promise().query(
+        `
+        SELECT * FROM reptile_feedings WHERE reptile_id = ? ORDER BY fed_at DESC
+      `,
+        [reptile_id]
+      )) as RowDataPacket[];
+
+      return rows;
+    },
+    reptileSheds: async (
+      _parent: any,
+      args: { reptile_id: string },
+      context: any
+    ) => {
+      const userId = context.user?.id;
+      if (!userId) {
+        throw new Error("Non autorisé");
+      }
+
+      const { reptile_id } = args;
+      if (!reptile_id) {
+        throw new Error("L'identifiant du reptile est requis.");
+      }
+
+      const [reptiles] = (await connection
+        .promise()
+        .query("SELECT id FROM reptiles WHERE id = ? AND user_id = ?", [
+          reptile_id,
+          userId,
+        ])) as RowDataPacket[];
+
+      if (reptiles.length === 0) {
+        throw new Error("Reptile non trouvé ou non autorisé");
+      }
+
+      const [rows] = (await connection.promise().query(
+        `
+        SELECT * FROM reptile_sheds WHERE reptile_id = ? ORDER BY shed_date DESC
+      `,
+        [reptile_id]
+      )) as RowDataPacket[];
+
+      return rows;
+    },
+    reptilePhotos: async (
+      _parent: any,
+      args: { reptile_id: string },
+      context: any
+    ) => {
+      const userId = context.user?.id;
+      if (!userId) {
+        throw new Error("Non autorisé");
+      }
+
+      const { reptile_id } = args;
+      if (!reptile_id) {
+        throw new Error("L'identifiant du reptile est requis.");
+      }
+
+      const [reptiles] = (await connection
+        .promise()
+        .query("SELECT id FROM reptiles WHERE id = ? AND user_id = ?", [
+          reptile_id,
+          userId,
+        ])) as RowDataPacket[];
+
+      if (reptiles.length === 0) {
+        throw new Error("Reptile non trouvé ou non autorisé");
+      }
+
+      const [photos] = (await connection
+        .promise()
+        .query(
+          "SELECT id, reptile_id, url, created_at FROM reptile_photos WHERE reptile_id = ? ORDER BY created_at DESC",
+          [reptile_id]
+        )) as RowDataPacket[];
+
+      return photos;
+    },
     reptiles: async (_parent: any, _args: any, context: any) => {
       const userId = context.user?.id;
 
@@ -71,10 +211,18 @@ export const reptileResolvers = {
         throw new Error("Non autorisé");
       }
 
-      const { event_name, event_date, event_time, notes } = args.input;
+      const {
+        event_name,
+        event_date,
+        event_time,
+        notes,
+        recurrence_type = "NONE",
+        recurrence_interval = 1,
+        recurrence_until = null,
+      } = args.input;
 
       const query =
-        "INSERT INTO reptile_events (event_name, event_date, event_time, notes, user_id) VALUES (?, ?, ?, ?, ?)";
+        "INSERT INTO reptile_events (event_name, event_date, event_time, notes, user_id, recurrence_type, recurrence_interval, recurrence_until) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
       const [result] = (await connection
         .promise()
         .query(query, [
@@ -83,6 +231,9 @@ export const reptileResolvers = {
           event_time,
           notes,
           userId,
+          recurrence_type,
+          recurrence_interval,
+          recurrence_until,
         ])) as OkPacket[];
 
       return {
@@ -92,6 +243,338 @@ export const reptileResolvers = {
         event_time,
         notes,
         user_id: userId,
+        recurrence_type,
+        recurrence_interval,
+        recurrence_until,
+      };
+    },
+    upsertReptileGenetics: async (
+      _parent: any,
+      args: { input: any },
+      context: any
+    ) => {
+      const userId = context.user?.id;
+      if (!userId) {
+        throw new Error("Non autorisé");
+      }
+
+      const {
+        reptile_id,
+        morph,
+        mutations,
+        hets,
+        traits,
+        lineage,
+        breeder,
+        hatch_date,
+        sire_name,
+        dam_name,
+        notes,
+      } = args.input;
+
+      if (!reptile_id) {
+        throw new Error("L'identifiant du reptile est requis.");
+      }
+
+      const [reptiles] = (await connection
+        .promise()
+        .query("SELECT id FROM reptiles WHERE id = ? AND user_id = ?", [
+          reptile_id,
+          userId,
+        ])) as RowDataPacket[];
+
+      if (reptiles.length === 0) {
+        throw new Error("Reptile non trouvé ou non autorisé");
+      }
+
+      await connection.promise().query(
+        `
+        INSERT INTO reptile_genetics (
+          reptile_id, morph, mutations, hets, traits, lineage, breeder, hatch_date, sire_name, dam_name, notes
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          morph = VALUES(morph),
+          mutations = VALUES(mutations),
+          hets = VALUES(hets),
+          traits = VALUES(traits),
+          lineage = VALUES(lineage),
+          breeder = VALUES(breeder),
+          hatch_date = VALUES(hatch_date),
+          sire_name = VALUES(sire_name),
+          dam_name = VALUES(dam_name),
+          notes = VALUES(notes)
+      `,
+        [
+          reptile_id,
+          morph,
+          mutations,
+          hets,
+          traits,
+          lineage,
+          breeder,
+          hatch_date,
+          sire_name,
+          dam_name,
+          notes,
+        ]
+      );
+
+      const [rows] = (await connection.promise().query(
+        "SELECT * FROM reptile_genetics WHERE reptile_id = ?",
+        [reptile_id]
+      )) as RowDataPacket[];
+
+      return rows[0];
+    },
+    addReptileFeeding: async (
+      _parent: any,
+      args: { input: any },
+      context: any
+    ) => {
+      const userId = context.user?.id;
+      if (!userId) {
+        throw new Error("Non autorisé");
+      }
+
+      const {
+        reptile_id,
+        food_id,
+        food_name,
+        quantity,
+        unit,
+        fed_at,
+        notes,
+      } = args.input;
+
+      if (!reptile_id || !fed_at) {
+        throw new Error("Reptile et date du nourrissage requis.");
+      }
+
+      const [reptiles] = (await connection
+        .promise()
+        .query("SELECT id FROM reptiles WHERE id = ? AND user_id = ?", [
+          reptile_id,
+          userId,
+        ])) as RowDataPacket[];
+
+      if (reptiles.length === 0) {
+        throw new Error("Reptile non trouvé ou non autorisé");
+      }
+
+      const normalizedFedAt = (() => {
+        if (!fed_at) return fed_at;
+        const parsed = new Date(fed_at);
+        if (isNaN(parsed.getTime())) return fed_at;
+        return parsed.toISOString().slice(0, 19).replace("T", " ");
+      })();
+
+      const [result] = (await connection.promise().query(
+        `
+        INSERT INTO reptile_feedings (
+          reptile_id, food_id, food_name, quantity, unit, fed_at, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      `,
+        [
+          reptile_id,
+          food_id ?? null,
+          food_name ?? null,
+          quantity ?? 1,
+          unit ?? "restant(s)",
+          normalizedFedAt,
+          notes ?? null,
+        ]
+      )) as OkPacket[];
+
+      await connection
+        .promise()
+        .query("UPDATE reptiles SET last_fed = ? WHERE id = ?", [
+          normalizedFedAt,
+          reptile_id,
+        ]);
+
+      return {
+        id: result.insertId,
+        reptile_id,
+        food_id,
+        food_name,
+        quantity: quantity ?? 1,
+        unit: unit ?? "restant(s)",
+        fed_at: normalizedFedAt,
+        notes,
+        created_at: new Date().toISOString(),
+      };
+    },
+    deleteReptileFeeding: async (
+      _parent: any,
+      args: { id: string },
+      context: any
+    ) => {
+      const userId = context.user?.id;
+      if (!userId) {
+        throw new Error("Non autorisé");
+      }
+
+      const { id } = args;
+      if (!id) {
+        throw new Error("L'identifiant du nourrissage est requis.");
+      }
+
+      const [result] = (await connection.promise().query(
+        `
+        DELETE rf FROM reptile_feedings rf
+        JOIN reptiles r ON r.id = rf.reptile_id
+        WHERE rf.id = ? AND r.user_id = ?
+      `,
+        [id, userId]
+      )) as OkPacket[];
+
+      if (result.affectedRows === 0) {
+        throw new Error("Nourrissage non trouvé ou non autorisé.");
+      }
+
+      return {
+        success: true,
+        message: "Nourrissage supprimé avec succès.",
+      };
+    },
+    addReptileShed: async (
+      _parent: any,
+      args: { input: any },
+      context: any
+    ) => {
+      const userId = context.user?.id;
+      if (!userId) {
+        throw new Error("Non autorisé");
+      }
+
+      const { reptile_id, shed_date, notes } = args.input;
+
+      if (!reptile_id || !shed_date) {
+        throw new Error("Reptile et date de mue requis.");
+      }
+
+      const [reptiles] = (await connection
+        .promise()
+        .query("SELECT id FROM reptiles WHERE id = ? AND user_id = ?", [
+          reptile_id,
+          userId,
+        ])) as RowDataPacket[];
+
+      if (reptiles.length === 0) {
+        throw new Error("Reptile non trouvé ou non autorisé");
+      }
+
+      const [result] = (await connection.promise().query(
+        `
+        INSERT INTO reptile_sheds (reptile_id, shed_date, notes)
+        VALUES (?, ?, ?)
+      `,
+        [reptile_id, shed_date, notes ?? null]
+      )) as OkPacket[];
+
+      return {
+        id: result.insertId,
+        reptile_id,
+        shed_date,
+        notes,
+        created_at: new Date().toISOString(),
+      };
+    },
+    deleteReptileShed: async (
+      _parent: any,
+      args: { id: string },
+      context: any
+    ) => {
+      const userId = context.user?.id;
+      if (!userId) {
+        throw new Error("Non autorisé");
+      }
+
+      const { id } = args;
+      if (!id) {
+        throw new Error("L'identifiant de la mue est requis.");
+      }
+
+      const [result] = (await connection.promise().query(
+        `
+        DELETE rs FROM reptile_sheds rs
+        JOIN reptiles r ON r.id = rs.reptile_id
+        WHERE rs.id = ? AND r.user_id = ?
+      `,
+        [id, userId]
+      )) as OkPacket[];
+
+      if (result.affectedRows === 0) {
+        throw new Error("Mue non trouvée ou non autorisée.");
+      }
+
+      return {
+        success: true,
+        message: "Mue supprimée avec succès.",
+      };
+    },
+    deleteReptileEvent: async (
+      _parent: any,
+      args: { id: string },
+      context: any
+    ) => {
+      const userId = context.user?.id;
+      if (!userId) {
+        throw new Error("Non autorisé");
+      }
+
+      const { id } = args;
+      if (!id) {
+        throw new Error("L'identifiant de l'événement est requis.");
+      }
+
+      const query =
+        "DELETE FROM reptile_events WHERE id = ? AND user_id = ?";
+      const [result] = (await connection
+        .promise()
+        .query(query, [id, userId])) as OkPacket[];
+
+      if (result.affectedRows === 0) {
+        throw new Error("Événement non trouvé ou non autorisé.");
+      }
+
+      return {
+        success: true,
+        message: "Événement supprimé avec succès.",
+      };
+    },
+    deleteReptilePhoto: async (
+      _parent: any,
+      args: { id: string },
+      context: any
+    ) => {
+      const userId = context.user?.id;
+      if (!userId) {
+        throw new Error("Non autorisé");
+      }
+
+      const { id } = args;
+      if (!id) {
+        throw new Error("L'identifiant de la photo est requis.");
+      }
+
+      const [result] = (await connection.promise().query(
+        `
+        DELETE rp FROM reptile_photos rp
+        JOIN reptiles r ON r.id = rp.reptile_id
+        WHERE rp.id = ? AND r.user_id = ?
+      `,
+        [id, userId]
+      )) as OkPacket[];
+
+      if (result.affectedRows === 0) {
+        throw new Error("Photo non trouvée ou non autorisée.");
+      }
+
+      return {
+        success: true,
+        message: "Photo supprimée avec succès.",
       };
     },
     addReptile: async (_parent: any, args: any, context: any) => {

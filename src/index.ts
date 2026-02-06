@@ -41,6 +41,7 @@ app.post("/api/upload", upload.single("image"), async (req, res) => {
     }
 
     const reptileId = req.body.reptileId;
+    const uploadType = (req.body.type || "profile").toString();
     if (!reptileId) {
       return res.status(400).json({ error: "ID du reptile requis" });
     }
@@ -69,14 +70,28 @@ app.post("/api/upload", upload.single("image"), async (req, res) => {
         // Si l'upload est réussi, récupère l'URL de l'image
         const imageUrl = result?.secure_url;
 
-        // Enregistrer l'URL dans la base de données
-        await connection.promise().query(
-          `UPDATE reptiles SET image_url = ? WHERE id = ?`,
-          [imageUrl, reptileId]
-        );
+        if (uploadType === "gallery") {
+          const [result] = await connection
+            .promise()
+            .query(
+              `INSERT INTO reptile_photos (reptile_id, url) VALUES (?, ?)`,
+              [reptileId, imageUrl]
+            );
+          // Répondre avec l'URL + id de photo
+          res.json({
+            imageUrl,
+            photoId: (result as any).insertId,
+          });
+        } else {
+          // Enregistrer l'URL comme photo principale
+          await connection.promise().query(
+            `UPDATE reptiles SET image_url = ? WHERE id = ?`,
+            [imageUrl, reptileId]
+          );
 
-        // Répondre avec l'URL de l'image
-        res.json({ imageUrl });
+          // Répondre avec l'URL de l'image
+          res.json({ imageUrl });
+        }
       }
     );
 
@@ -103,6 +118,64 @@ const server = new ApolloServer({
 
 // Planifier l'exécution de la vérification tous les jours à 8h00 du matin: 0 8 * * *
 cron.schedule("0 8 * * *", async () => {
+  const parseDate = (value: string | null) => {
+    if (!value) return null;
+    const normalized = value.replace(/\//g, "-");
+    const parts = normalized.split("-");
+    if (parts.length < 3) return null;
+    const [year, month, day] = parts.map((p) => Number(p));
+    if (!year || !month || !day) return null;
+    return new Date(Date.UTC(year, month - 1, day));
+  };
+
+  const isSameDay = (a: Date, b: Date) =>
+    a.getUTCFullYear() === b.getUTCFullYear() &&
+    a.getUTCMonth() === b.getUTCMonth() &&
+    a.getUTCDate() === b.getUTCDate();
+
+  const shouldNotifyToday = (event: any, today: Date) => {
+    const baseDate = parseDate(event.event_date);
+    if (!baseDate) return false;
+
+    const untilDate = parseDate(event.recurrence_until);
+    if (untilDate && today > untilDate) return false;
+
+    const recurrenceType = (event.recurrence_type || "NONE").toUpperCase();
+    const interval = Number(event.recurrence_interval || 1);
+
+    if (recurrenceType === "NONE") {
+      return isSameDay(baseDate, today);
+    }
+
+    if (today < baseDate) return false;
+
+    const diffMs = today.getTime() - baseDate.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (recurrenceType === "DAILY") {
+      return diffDays % interval === 0;
+    }
+
+    if (recurrenceType === "WEEKLY") {
+      return diffDays % (7 * interval) === 0;
+    }
+
+    if (recurrenceType === "MONTHLY") {
+      const monthsDiff =
+        (today.getUTCFullYear() - baseDate.getUTCFullYear()) * 12 +
+        (today.getUTCMonth() - baseDate.getUTCMonth());
+      return (
+        monthsDiff % interval === 0 &&
+        today.getUTCDate() === baseDate.getUTCDate()
+      );
+    }
+
+    return false;
+  };
+
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+
   // * * * * * pour tester toutes les minutes
   // Récupérer tous les utilisateurs avec leurs tokens Expo
   const [users] = await connection.promise().query(`
@@ -111,21 +184,25 @@ cron.schedule("0 8 * * *", async () => {
 
   // Pour chaque utilisateur, envoyer des notifications
   for (const user of users as any[]) {
-    // Récupérer les événements du jour pour cet utilisateur
+    // Récupérer les événements (ponctuels + récurrents)
     const [events] = (await connection.promise().query(
       `
-      SELECT * FROM reptile_events WHERE user_id = ? AND DATE(event_date) = CURDATE()
+      SELECT * FROM reptile_events WHERE user_id = ?
     `,
       [user.id]
     )) as any[];
 
+    const todaysEvents = (events as any[]).filter((event) =>
+      shouldNotifyToday(event, today)
+    );
+
     // Si des événements sont trouvés pour cet utilisateur aujourd'hui, envoyer une notification
-    if (events.length > 0) {
+    if (todaysEvents.length > 0) {
       const message = {
-        body: `Vous avez ${events.length} événement(s) aujourd'hui !`,
-        data: { events }, // Ajoutez des données supplémentaires si nécessaire
+        body: `Vous avez ${todaysEvents.length} événement(s) aujourd'hui !`,
+        data: { events: todaysEvents }, // Ajoutez des données supplémentaires si nécessaire
       };
-      const notificationMessage = `Vous avez ${events.length} événement(s) aujourd'hui !`;
+      const notificationMessage = `Vous avez ${todaysEvents.length} événement(s) aujourd'hui !`;
 
       const notificationQuery = `
         INSERT INTO notifications (user_id, message, sent, \`read\`) 

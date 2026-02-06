@@ -19,7 +19,7 @@ export const dashboardResolvers = {
       const [[eventsToday]] = (await connection
         .promise()
         .query(
-          "SELECT COUNT(*) AS count FROM reptile_events WHERE user_id = ? AND event_date = CURDATE()",
+          "SELECT COUNT(*) AS count FROM reptile_events WHERE user_id = ? AND DATE(event_date) = CURDATE()",
           [userId]
         )) as RowDataPacket[][];
 
@@ -29,8 +29,8 @@ export const dashboardResolvers = {
           `
           SELECT id, event_date, event_name, event_time, notes
           FROM reptile_events
-          WHERE user_id = ? AND event_date >= CURDATE()
-          ORDER BY event_date ASC, event_time ASC
+          WHERE user_id = ? AND DATE(event_date) >= CURDATE()
+          ORDER BY DATE(event_date) ASC, event_time ASC
           LIMIT 3
         `,
           [userId]

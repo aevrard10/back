@@ -17,11 +17,7 @@ export const notificationsResolvers = {
       return notifications;
     },
 
-    getUnreadNotificationsCount: async (
-      _parent: any,
-      args: any,
-      context: any
-    ) => {
+    getUnreadNotificationsCount: async (_parent: any, _args: any, context: any) => {
       const userId = context.user?.id;
 
       if (!userId) {
@@ -76,11 +72,7 @@ export const notificationsResolvers = {
 
       return rows[0];
     },
-    markAllNotificationsAsRead: async (
-      _parent: any,
-      _args: { user_id: number },
-      context: any
-    ) => {
+    markAllNotificationsAsRead: async (_parent: any, _args: any, context: any) => {
       const userId = context.user?.id;
       if (!userId) {
         throw new Error("Non autorisé");

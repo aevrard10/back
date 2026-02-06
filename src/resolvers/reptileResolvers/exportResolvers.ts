@@ -211,10 +211,6 @@ export const exportResolvers = {
         genetics: geneticsRows[0] || null,
       };
 
-      if (format === "CSV") {
-        return exportCsv(payload);
-      }
-
       return await exportPdf(payload);
     },
   },

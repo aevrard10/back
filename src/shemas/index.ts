@@ -229,7 +229,6 @@ enum RecurrenceType {
 }
 
 enum ExportFormat {
-  CSV
   PDF
 }
 

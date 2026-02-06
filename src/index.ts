@@ -11,7 +11,19 @@ import connection from "./db";
 import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import streamifier from "streamifier";
+import * as Sentry from "@sentry/node";
+import { nodeProfilingIntegration } from "@sentry/profiling-node";
 const app: Application = express();
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  tracesSampleRate: 0.1,
+  profilesSampleRate: 0.1,
+  integrations: [
+    Sentry.expressIntegration(),
+    nodeProfilingIntegration(),
+  ],
+});
 app.use(express.json({ limit: "10mb" })); // Parser les requêtes JSON
 app.use(cors()); // Autoriser les requêtes cross-origin
 app.use(authenticateUser);
@@ -232,6 +244,8 @@ async function startServer() {
 
   // Lier Apollo Server avec Express via le middleware
   server.applyMiddleware({ app, path: "/graphql" });
+
+  app.use(Sentry.expressErrorHandler());
 
   // Démarrage du serveur Express
   app.listen(port, () => {

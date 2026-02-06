@@ -280,6 +280,7 @@ type Mutation {
   addReptile(input: AddReptileInput!): Reptile
   addReptileEvent(input: AddReptileEventInput!): ReptileEvent
   deleteReptileEvent(id: ID!): MutationResponse!
+  excludeReptileEventOccurrence(id: ID!, date: String!): MutationResponse!
   deleteReptilePhoto(id: ID!): MutationResponse!
   upsertReptileGenetics(input: ReptileGeneticsInput!): ReptileGenetics!
   addReptileFeeding(input: AddReptileFeedingInput!): ReptileFeeding!

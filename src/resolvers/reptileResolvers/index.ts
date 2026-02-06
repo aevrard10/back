@@ -12,6 +12,10 @@ type ReptileEventRow = RowDataPacket & {
   recurrence_interval?: number | null;
   recurrence_until?: string | null;
 };
+type ReptileEventExclusionRow = RowDataPacket & {
+  event_id: number;
+  excluded_date: string;
+};
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -67,7 +71,10 @@ const addMonthsUtc = (base: Date, months: number, baseDay: number) => {
   return new Date(Date.UTC(targetYear, modMonth, day));
 };
 
-const expandRecurringEvents = (rows: ReptileEventRow[]) => {
+const expandRecurringEvents = (
+  rows: ReptileEventRow[],
+  exclusionsMap: Map<number, Set<string>>
+) => {
   const today = new Date();
   const todayUtc = new Date(
     Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
@@ -83,12 +90,17 @@ const expandRecurringEvents = (rows: ReptileEventRow[]) => {
     const recurrenceType = row.recurrence_type ?? "NONE";
     const interval = Math.max(1, Number(row.recurrence_interval ?? 1));
     const untilDate = parseDateOnly(row.recurrence_until);
+    const excludedDates = exclusionsMap.get(row.id);
 
     if (recurrenceType === "NONE") {
+      const baseFormatted = formatDateOnly(baseDate);
+      if (excludedDates?.has(baseFormatted)) {
+        return [];
+      }
       return [
         {
           ...row,
-          event_date: formatDateOnly(baseDate),
+          event_date: baseFormatted,
         },
       ];
     }
@@ -113,9 +125,16 @@ const expandRecurringEvents = (rows: ReptileEventRow[]) => {
       let iterations = 0;
       while (current <= windowEnd && iterations < maxIterations) {
         if (untilDate && current > untilDate) break;
+        const formatted = formatDateOnly(current);
+        if (excludedDates?.has(formatted)) {
+          index += 1;
+          current = addDaysUtc(baseDate, index * step);
+          iterations += 1;
+          continue;
+        }
         occurrences.push({
           ...row,
-          event_date: formatDateOnly(current),
+          event_date: formatted,
         });
         index += 1;
         current = addDaysUtc(baseDate, index * step);
@@ -139,9 +158,16 @@ const expandRecurringEvents = (rows: ReptileEventRow[]) => {
       let iterations = 0;
       while (current <= windowEnd && iterations < maxIterations) {
         if (untilDate && current > untilDate) break;
+        const formatted = formatDateOnly(current);
+        if (excludedDates?.has(formatted)) {
+          index += 1;
+          current = addMonthsUtc(baseDate, index * interval, baseDay);
+          iterations += 1;
+          continue;
+        }
         occurrences.push({
           ...row,
-          event_date: formatDateOnly(current),
+          event_date: formatted,
         });
         index += 1;
         current = addMonthsUtc(baseDate, index * interval, baseDay);
@@ -167,7 +193,32 @@ export const reptileResolvers = {
       const results = await connection.promise().query(query, [userId]);
 
       const rows = results[0] as ReptileEventRow[];
-      return expandRecurringEvents(rows);
+      if (rows.length === 0) {
+        return [];
+      }
+
+      const [exclusions] = (await connection.promise().query(
+        `
+        SELECT ree.event_id, ree.excluded_date
+        FROM reptile_event_exclusions ree
+        JOIN reptile_events re ON re.id = ree.event_id
+        WHERE re.user_id = ?
+      `,
+        [userId],
+      )) as [ReptileEventExclusionRow[], unknown];
+
+      const exclusionsMap = new Map<number, Set<string>>();
+      exclusions.forEach((row) => {
+        const date = parseDateOnly(row.excluded_date);
+        if (!date) return;
+        const formatted = formatDateOnly(date);
+        if (!exclusionsMap.has(row.event_id)) {
+          exclusionsMap.set(row.event_id, new Set());
+        }
+        exclusionsMap.get(row.event_id)?.add(formatted);
+      });
+
+      return expandRecurringEvents(rows, exclusionsMap);
     },
     reptileGenetics: async (
       _parent: any,
@@ -699,6 +750,50 @@ export const reptileResolvers = {
       return {
         success: true,
         message: "Événement supprimé avec succès.",
+      };
+    },
+    excludeReptileEventOccurrence: async (
+      _parent: any,
+      args: { id: string; date: string },
+      context: any
+    ) => {
+      const userId = context.user?.id;
+      if (!userId) {
+        throw new Error("Non autorisé");
+      }
+
+      const { id, date } = args;
+      if (!id || !date) {
+        throw new Error("L'identifiant et la date sont requis.");
+      }
+
+      const parsedDate = parseDateOnly(date);
+      if (!parsedDate) {
+        throw new Error("Date invalide.");
+      }
+
+      const formattedDate = formatDateOnly(parsedDate);
+
+      const [events] = (await connection.promise().query(
+        "SELECT id FROM reptile_events WHERE id = ? AND user_id = ?",
+        [id, userId]
+      )) as RowDataPacket[];
+
+      if (events.length === 0) {
+        throw new Error("Événement non trouvé ou non autorisé.");
+      }
+
+      await connection.promise().query(
+        `
+        INSERT IGNORE INTO reptile_event_exclusions (event_id, excluded_date)
+        VALUES (?, ?)
+      `,
+        [id, formattedDate]
+      );
+
+      return {
+        success: true,
+        message: "Occurrence supprimée avec succès.",
       };
     },
     deleteReptilePhoto: async (

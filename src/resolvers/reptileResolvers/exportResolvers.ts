@@ -102,7 +102,7 @@ const exportPdf = async (data: any) => {
     const imgBuffer = await fetchImageBuffer(data.reptile.image_url);
     if (imgBuffer) {
       try {
-        doc.image(imgBuffer, { fit: [160, 160], align: "left" });
+        doc.image(imgBuffer, { fit: [160, 160] });
         doc.moveDown();
       } catch {
         // ignore image errors

@@ -9,12 +9,14 @@ import mailjet from "node-mailjet";
 dotenv.config();
 
 const SECRET_KEY = process.env.SECRET_KEY!;
-const mailer = process.env.MAILJET_API_KEY && process.env.MAILJET_API_SECRET
-  ? mailjet.apiConnect(
-      process.env.MAILJET_API_KEY,
-      process.env.MAILJET_API_SECRET,
-    )
-  : null;
+const MAILJET_ENABLED = process.env.MAILJET_ENABLED === "true";
+const mailer =
+  MAILJET_ENABLED && process.env.MAILJET_API_KEY && process.env.MAILJET_API_SECRET
+    ? mailjet.apiConnect(
+        process.env.MAILJET_API_KEY,
+        process.env.MAILJET_API_SECRET,
+      )
+    : null;
 
 export const authResolvers = {
   Query: {
@@ -209,9 +211,10 @@ export const authResolvers = {
 
         return {
           success: true,
-          message:
-            "Si un compte existe, un email vient d’être envoyé.",
-          resetToken: null as string | null, // on ne renvoie plus le token en prod
+          message: MAILJET_ENABLED
+            ? "Si un compte existe, un email vient d’être envoyé."
+            : "Réinitialisation désactivée pour le moment.",
+          resetToken: MAILJET_ENABLED ? (null as string | null) : resetToken,
         };
       } catch (error) {
         console.error("Erreur requestPasswordReset :", error);
